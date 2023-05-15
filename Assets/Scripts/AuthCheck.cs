@@ -36,7 +36,7 @@ namespace SpaceTraders {
 
         public void CheckAuthorization() {
             string authToken = inputField.text;
-            object obj = ServerManager.Get<object>("/my/agent", authToken);
+            object obj = ServerManager.Request<object>(REQUEST_METHOD.GET, "/my/agent", authToken);
             if(obj == null) {
                 errorTime = 2f;
                 return;

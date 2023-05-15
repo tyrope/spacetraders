@@ -121,7 +121,7 @@ namespace SpaceTraders
         // Create the world map as we know it.
         IEnumerator CreateMap() {
             //Get information about the known map.
-            solarSystems = ServerManager.Get<List<SolarSystem>>("/systems.json");
+            solarSystems = ServerManager.Request<List<SolarSystem>>(REQUEST_METHOD.GET, "/systems.json");
             GameObject go;
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Reset();
