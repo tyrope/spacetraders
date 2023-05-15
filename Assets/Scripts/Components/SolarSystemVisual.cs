@@ -39,9 +39,9 @@ namespace SpaceTraders
         }
 
         public void SetPosition() {
-            float xPos = (system.x + MapManager.GetCenter().x) * 50 / MapManager.GetZoom();
-            float yPos = (system.y + MapManager.GetCenter().y) * 50 / MapManager.GetZoom();
-            gameObject.transform.position = new Vector3(xPos, 0, yPos);
+            float xPos = system.x + MapManager.GetCenter().x;
+            float yPos = system.y + MapManager.GetCenter().y;
+            gameObject.transform.position = new Vector3(xPos, 0, yPos) / MapManager.GetZoom() * 2f;
         }
     }
 }
