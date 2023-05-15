@@ -7,6 +7,7 @@ namespace SpaceTraders
     {
         public MapManager MapManager;
         public SolarSystem system;
+        public Material[] materials;
 
         private Canvas cvs;
         private Vector3 camLocation;
@@ -15,6 +16,7 @@ namespace SpaceTraders
         void Start() {
             SetPosition();
             gameObject.name = $"[{system.x},{system.y}]{system.symbol}";
+            gameObject.GetComponentInChildren<MeshRenderer>().material = materials[(int)system.type];
 
             cvs = gameObject.GetComponentInChildren<Canvas>();
             cvs.worldCamera = Camera.main;
