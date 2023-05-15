@@ -15,7 +15,7 @@ namespace SpaceTraders
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
 
         private Vector2 mapCenter = Vector2.zero;
-        private int zoom = 50;
+        private float zoom = 50;
         private int displayedSystems;
 
         void Start() {
@@ -27,13 +27,16 @@ namespace SpaceTraders
         }
 
         void Update() {
-            if(Input.GetKeyDown(KeyCode.Keypad2)) {
+            float scrollSpeed = 5f;
+            float zoomSpeed = 10f;
+
+            if(Input.GetKey(KeyCode.Keypad2)) {
                 // Pan map north (X-).
-                PanMap(Vector2.down);
+                PanMap(Vector2.up * Time.deltaTime * scrollSpeed);
             }
-            if(Input.GetKeyDown(KeyCode.Keypad4)) {
+            if(Input.GetKey(KeyCode.Keypad4)) {
                 // Pan map east (Y+).
-                PanMap(Vector2.left);
+                PanMap(Vector2.right * Time.deltaTime * scrollSpeed);
             }
             if(Input.GetKeyDown(KeyCode.Keypad5)) {
                 // Reset map.
@@ -41,29 +44,29 @@ namespace SpaceTraders
                 zoom = 50;
                 RefreshMap();
             }
-            if(Input.GetKeyDown(KeyCode.Keypad6)) {
+            if(Input.GetKey(KeyCode.Keypad6)) {
                 // Pan map west (Y-).
-                PanMap(Vector2.right);
+                PanMap(Vector2.left * Time.deltaTime * scrollSpeed);
             }
-            if(Input.GetKeyDown(KeyCode.Keypad8)) {
+            if(Input.GetKey(KeyCode.Keypad8)) {
                 // Pan map north (X+).
-                PanMap(Vector2.up);
+                PanMap(Vector2.down * Time.deltaTime * scrollSpeed);
             }
-            if(Input.GetKeyDown(KeyCode.KeypadMinus)) {
+            if(Input.GetKey(KeyCode.KeypadMinus)) {
                 // Zoom out.
-                ChangeZoom(1);
+                ChangeZoom(Time.deltaTime * zoomSpeed);
             }
-            if(Input.GetKeyDown(KeyCode.KeypadPlus)) {
+            if(Input.GetKey(KeyCode.KeypadPlus)) {
                 // Zoom in.
-                ChangeZoom(-1);
+                ChangeZoom(Time.deltaTime * zoomSpeed * -1);
             }
         }
 
-        public int GetZoom() => zoom;
+        public float GetZoom() => zoom;
         public Vector2 GetCenter() => mapCenter;
-        private void ChangeZoom( int delta ) {
+        private void ChangeZoom( float delta ) {
             zoom += delta;
-            zoom = System.Math.Clamp(zoom, 1, 5000);
+            zoom = Mathf.Clamp(zoom, 10, 5000);
             RefreshMap();
         }
         private void PanMap(Vector2 delta ) {
