@@ -13,8 +13,6 @@ namespace SpaceTraders
         void Start() {
             camTransform = Camera.main.transform;
             Cursor.lockState = CursorLockMode.Locked;
-
-            // TODO some form of center-of-screen indicator.
         }
 
         // Update is called once per frame
