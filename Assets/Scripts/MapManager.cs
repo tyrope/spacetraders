@@ -28,38 +28,43 @@ namespace SpaceTraders
         }
 
         void Update() {
-            float scrollSpeed = 5f;
-            float zoomSpeed = 10f;
+            CheckInputs();
+        }
+        private void CheckInputs() {
 
-            if(Input.GetKey(KeyCode.Keypad2)) {
-                // Pan map north (X-).
-                PanMap(Vector2.up * Time.deltaTime * scrollSpeed);
-            }
-            if(Input.GetKey(KeyCode.Keypad4)) {
-                // Pan map east (Y+).
-                PanMap(Vector2.right * Time.deltaTime * scrollSpeed);
-            }
             if(Input.GetKeyDown(KeyCode.Keypad5)) {
                 // Reset map.
                 mapCenter = Vector2.zero;
                 zoom = 50;
                 RefreshMap();
+                return;
             }
-            if(Input.GetKey(KeyCode.Keypad6)) {
-                // Pan map west (Y-).
-                PanMap(Vector2.left * Time.deltaTime * scrollSpeed);
+
+            /// Scroll the map. ///
+            float scrollSpeed = 5f;
+            Vector2 panDir = Vector2.zero;
+
+            if(Input.GetKey(KeyCode.Keypad1)) panDir += Vector2.up + Vector2.right;
+            if(Input.GetKey(KeyCode.Keypad2)) panDir += Vector2.up;
+            if(Input.GetKey(KeyCode.Keypad3)) panDir += Vector2.up + Vector2.left;
+            if(Input.GetKey(KeyCode.Keypad4)) panDir += Vector2.right;
+            if(Input.GetKey(KeyCode.Keypad6)) panDir += Vector2.left;
+            if(Input.GetKey(KeyCode.Keypad7)) panDir += Vector2.down + Vector2.right;
+            if(Input.GetKey(KeyCode.Keypad8)) panDir += Vector2.down;
+            if(Input.GetKey(KeyCode.Keypad9)) panDir += Vector2.down + Vector2.left;
+        
+            if(panDir != Vector2.zero) {
+                PanMap(panDir.normalized * Time.deltaTime * scrollSpeed);
             }
-            if(Input.GetKey(KeyCode.Keypad8)) {
-                // Pan map north (X+).
-                PanMap(Vector2.down * Time.deltaTime * scrollSpeed);
-            }
-            if(Input.GetKey(KeyCode.KeypadMinus)) {
-                // Zoom out.
-                ChangeZoom(Time.deltaTime * zoomSpeed);
-            }
-            if(Input.GetKey(KeyCode.KeypadPlus)) {
-                // Zoom in.
-                ChangeZoom(Time.deltaTime * zoomSpeed * -1);
+
+            /// ZOOOOOOOOOMIES ///
+            float zoomSpeed = 10f;
+            int zoomDir = 0;
+            if(Input.GetKey(KeyCode.KeypadMinus)) zoomDir++;
+            if(Input.GetKey(KeyCode.KeypadPlus)) zoomDir--;
+
+            if(zoomDir != 0) {
+                ChangeZoom(Time.deltaTime * zoomSpeed * zoomDir);
             }
         }
 
