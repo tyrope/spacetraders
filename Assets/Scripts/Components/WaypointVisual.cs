@@ -28,8 +28,8 @@ namespace SpaceTraders
         }
 
         public void SetPosition() {
-            float xPos = waypoint.x * MapManager.GetZoom() / 1000;
-            float yPos = waypoint.y * MapManager.GetZoom() / 1000;
+            float xPos = waypoint.x * MapManager.GetZoom() / 10000;
+            float yPos = waypoint.y * MapManager.GetZoom() / 10000;
             Vector3 subPos = new Vector3(xPos, 0, yPos);
             Vector3 parentPos = gameObject.transform.parent.position;
             Vector3 newPos = parentPos + subPos;

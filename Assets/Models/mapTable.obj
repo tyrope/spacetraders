@@ -1,7 +1,7 @@
 # Blender 3.3.1
 # www.blender.org
 mtllib mapTable.mtl
-o Cube
+o mapTable
 v 2.500000 0.475000 -2.500000
 v 2.000000 0.000000 -2.000000
 v 2.500000 0.475000 2.500000

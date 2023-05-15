@@ -20,6 +20,7 @@ namespace SpaceTraders
             MovePlayer();
             RotateCamera();
         }
+
         private void MovePlayer() {
             // Set speed to running if we're holding shift, or walking otherwise.
             float moveSpeed = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? runSpeed : walkSpeed;
@@ -40,18 +41,18 @@ namespace SpaceTraders
             transform.Translate(moveDirection * moveSpeed * Time.deltaTime);
         }
 
-        float rotX;
+        private float cameraRotationY;
         private void RotateCamera() {
             // get the mouse inputs
             float y = Input.GetAxis("Mouse X") * mouseSensitivity;
-            rotX += Input.GetAxis("Mouse Y") * mouseSensitivity;
+            cameraRotationY += Input.GetAxis("Mouse Y") * mouseSensitivity;
 
             // Let's not look upside-down.
-            rotX = Mathf.Clamp(rotX, -90f, 90f);
+            cameraRotationY = Mathf.Clamp(cameraRotationY, -90f, 90f);
 
             // Send it.
             transform.eulerAngles = new Vector3(0, transform.eulerAngles.y + y, 0);
-            camTransform.eulerAngles = new Vector3(-rotX, transform.eulerAngles.y + y, 0);
+            camTransform.eulerAngles = new Vector3(-cameraRotationY, transform.eulerAngles.y + y, 0);
         }
     }
 }

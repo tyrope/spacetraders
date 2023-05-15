@@ -81,7 +81,7 @@ namespace SpaceTraders
         }
 
         public void SelectSystem(SolarSystem sys) {
-            if(selectedSystem != null) {
+            if(selectedSystem != null && solarSystemObjects.ContainsKey(selectedSystem)) {
                 //Nuke the waypoints of the previously selected system.
                 foreach(Transform t in solarSystemObjects[selectedSystem].transform.Find("Waypoints")) {
                     GameObject.Destroy(t.gameObject);
@@ -122,7 +122,7 @@ namespace SpaceTraders
         // Create the world map as we know it.
         IEnumerator CreateMap() {
             //Get information about the known map.
-            solarSystems = ServerManager.Get<List<SolarSystem>>($"/systems.json");
+            solarSystems = ServerManager.Get<List<SolarSystem>>("/systems.json");
             GameObject go;
             stopwatch.Reset();
             stopwatch.Start();
