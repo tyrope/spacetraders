@@ -10,6 +10,7 @@ namespace SpaceTraders
     {
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
+        public GameObject tableLightCone;
         private Transform SystemContainer;
         private List<SolarSystem> solarSystems;
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
@@ -32,8 +33,9 @@ namespace SpaceTraders
         }
         private void CheckInputs() {
 
+            #region Map Controls
+            /// Map reset ///
             if(Input.GetKeyDown(KeyCode.Keypad5)) {
-                // Reset map.
                 mapCenter = Vector2.zero;
                 zoom = 50;
                 RefreshMap();
@@ -66,13 +68,14 @@ namespace SpaceTraders
             if(zoomDir != 0) {
                 ChangeZoom(Time.deltaTime * zoomSpeed * zoomDir);
             }
+            #endregion
         }
 
         public float GetZoom() => zoom;
         public Vector2 GetCenter() => mapCenter;
         private void ChangeZoom( float delta ) {
             zoom += delta;
-            zoom = Mathf.Clamp(zoom, 10, 5000);
+            zoom = Mathf.Max(10, zoom); // No zooming in further than 10.
             RefreshMap();
         }
         private void PanMap(Vector2 delta ) {
@@ -80,6 +83,9 @@ namespace SpaceTraders
             RefreshMap();
         }
 
+        public void DeselectSystem() {
+            SelectSystem(null);
+        }
         public void SelectSystem(SolarSystem sys) {
             if(selectedSystem != null && solarSystemObjects.ContainsKey(selectedSystem)) {
                 //Nuke the waypoints of the previously selected system.
@@ -87,10 +93,18 @@ namespace SpaceTraders
                     GameObject.Destroy(t.gameObject);
                 }
             }
+            if(sys == null) {
+                // We're deselecting.
+                tableLightCone.SetActive(false);
+                return;
+            }
+            tableLightCone.SetActive(true);
             foreach(Waypoint wp in sys.waypoints) {
                 SpawnWaypoint(wp, sys, solarSystemObjects[sys]);
             }
             selectedSystem = sys;
+            Vector2 newCenter = new Vector2(selectedSystem.x, selectedSystem.y) - mapCenter * -1;
+            PanMap(newCenter);
         }
 
         private void RefreshMap() {

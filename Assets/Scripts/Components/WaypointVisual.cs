@@ -9,31 +9,18 @@ namespace SpaceTraders
         public SolarSystem solarSystem;
         public Waypoint waypoint;
 
-        private Canvas cvs;
         // Start is called before the first frame update
         void Start() {
             SetPosition();
             gameObject.name = $"[{waypoint.x},{waypoint.y}]{waypoint.symbol.Split('-')[2]}";
 
-            cvs = gameObject.GetComponentInChildren<Canvas>();
-            cvs.worldCamera = Camera.main;
-
-            gameObject.GetComponentInChildren<TMP_Text>().text = waypoint.symbol.Split('-')[2];
-        }
-
-        // Update is called once per frame
-        void Update() {
-            cvs.transform.LookAt(Camera.main.transform);
-            cvs.transform.Rotate(new Vector3(0, 1, 0), 180);
+            gameObject.GetComponentInChildren<TMP_Text>().text = waypoint.symbol;
         }
 
         public void SetPosition() {
-            float xPos = waypoint.x * MapManager.GetZoom() / 10000;
-            float yPos = waypoint.y * MapManager.GetZoom() / 10000;
-            Vector3 subPos = new Vector3(xPos, 0, yPos);
-            Vector3 parentPos = gameObject.transform.parent.position;
-            Vector3 newPos = parentPos + subPos;
-            gameObject.transform.position = newPos;
+            float xPos = waypoint.x / 88f; // Scale from -200 < x <  200
+            float yPos = waypoint.y / 88f; //    to      -2.27 < x < 2.227
+            gameObject.transform.position = new Vector3(xPos, 0, yPos);
         }
     }
 }
