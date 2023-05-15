@@ -33,6 +33,11 @@ namespace SpaceTraders
             }
         }
 
+        void OnMouseDown() {
+            Debug.Log("Clicked on system " + system.symbol);
+            MapManager.SelectSystem(system);
+        }
+
         public void SetPosition() {
             float xPos = (system.x + MapManager.GetCenter().x) * 50 / MapManager.GetZoom();
             float yPos = (system.y + MapManager.GetCenter().y) * 50 / MapManager.GetZoom();

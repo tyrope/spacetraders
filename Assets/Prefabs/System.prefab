@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3710547532858404925
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1484167186760281878}
+  m_Layer: 0
+  m_Name: Waypoints
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1484167186760281878
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3710547532858404925}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7430787548948740041}
+  m_RootOrder: -1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7430787548011648302
 GameObject:
   m_ObjectHideFlags: 0
@@ -228,13 +259,14 @@ GameObject:
   m_Component:
   - component: {fileID: 7430787548948740041}
   - component: {fileID: 1385692427421082858}
+  - component: {fileID: 4530910292720208515}
   m_Layer: 0
   m_Name: System
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &7430787548948740041
 Transform:
   m_ObjectHideFlags: 0
@@ -249,6 +281,7 @@ Transform:
   m_Children:
   - {fileID: 7430787548011648297}
   - {fileID: 7430787549103523185}
+  - {fileID: 1484167186760281878}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -277,6 +310,18 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 20d3b719b9c4b8b4da48cca59c654b45, type: 2}
   - {fileID: 2100000, guid: ec27515a804986d48888eed4cfcb276a, type: 2}
 --- !u!135 &4530910292720208515
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7430787548948740046}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 18.5, z: 0}
 --- !u!1 &7430787549103523190
 GameObject:
   m_ObjectHideFlags: 0

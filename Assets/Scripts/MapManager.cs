@@ -13,6 +13,7 @@ namespace SpaceTraders
         private readonly System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         private List<SolarSystem> solarSystems;
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
+        private SolarSystem selectedSystem;
 
         private Vector2 mapCenter = Vector2.zero;
         private float zoom = 50;
@@ -74,6 +75,19 @@ namespace SpaceTraders
             RefreshMap();
         }
 
+        public void SelectSystem(SolarSystem sys) {
+            if(selectedSystem != null) {
+                //Nuke the waypoints of the previously selected system.
+                foreach(Transform t in solarSystemObjects[selectedSystem].transform.Find("Waypoints")) {
+                    GameObject.Destroy(t.gameObject);
+                }
+            }
+            foreach(Waypoint wp in sys.waypoints) {
+                SpawnWaypoint(wp, sys, solarSystemObjects[sys]);
+            }
+            selectedSystem = sys;
+        }
+
         private void RefreshMap() {
             Vector2 minBounds = new Vector2(zoom * -1 - mapCenter.x, zoom * -1 - mapCenter.y);
             Vector2 maxBounds = new Vector2(zoom - mapCenter.x, zoom - mapCenter.y);
@@ -94,12 +108,10 @@ namespace SpaceTraders
                         solarSystemObjects.Add(sys, SpawnSystem(sys));
                         displayedSystems++;
                     } else {
-                        // TODO: Show/hide waypoints at zoom level.
                         solarSystemObjects[sys].GetComponent<SolarSystemVisual>().SetPosition();
                     }
                 }
             }
-            Debug.Log($"Map refreshed! {mapCenter}@{zoom} -- {displayedSystems} within range.");
         }
 
         // Create the world map as we know it.
@@ -118,11 +130,6 @@ namespace SpaceTraders
                 displayedSystems++;
                 go = SpawnSystem(sys);
                 solarSystemObjects.Add(sys, go);
-                if(sys.waypoints.Count > 0) {
-                    foreach(Waypoint wp in sys.waypoints) {
-                        SpawnWaypoint(wp, sys, go);
-                    }
-                }
                 if(stopwatch.ElapsedMilliseconds > 1000 / 60) {
                     stopwatch.Stop();
                     stopwatch.Reset();
@@ -148,7 +155,7 @@ namespace SpaceTraders
         void SpawnWaypoint( Waypoint waypoint, SolarSystem sys, GameObject system ) {
             GameObject go = GameObject.Instantiate(WaypointPrefab);
             WaypointVisual wpvisual = go.GetComponent<WaypointVisual>();
-            go.transform.parent = system.transform;
+            go.transform.parent = system.transform.Find("Waypoints");
 
             wpvisual.waypoint = waypoint;
             wpvisual.solarSystem = sys;
