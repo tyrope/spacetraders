@@ -8,10 +8,10 @@ namespace SpaceTraders
     public class CacheHandler {
         public enum RETURNCODE { UNKNOWN_ERROR = -1, SUCCESS, NOT_FOUND, EXPIRED }
 
-        private class CachedItem {
-            private string contents;
-            private long createdAt;
-            private TimeSpan lifespan;
+        public class CachedItem {
+            public string contents;
+            public long createdAt;
+            public TimeSpan lifespan;
 
             public CachedItem( string payload, TimeSpan duration ) {
                 contents = payload;
@@ -26,7 +26,8 @@ namespace SpaceTraders
             }
 
             public (RETURNCODE, string) GetContents() {
-                if(DateTime.Compare(DateTime.Now, new DateTime(createdAt).Add(lifespan)) >= 0) {
+                DateTime ExpiryDate = new DateTime(createdAt).Add(lifespan);
+                if(DateTime.Compare(DateTime.Now, ExpiryDate) > 0) {
                     return (RETURNCODE.EXPIRED, null);
                 }
                 return (RETURNCODE.SUCCESS, contents);
