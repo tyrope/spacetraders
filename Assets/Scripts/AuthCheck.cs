@@ -13,6 +13,7 @@ namespace SpaceTraders {
 
         // Start is called before the first frame update
         void Start() {
+            mapManager.enabled = false;
             // We're authorized already.
             if(RevokeAuthorization) {
                 PlayerPrefs.DeleteKey("AuthToken");
