@@ -10,7 +10,6 @@ namespace SpaceTraders
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
         private Transform SystemContainer;
-        private readonly System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
         private List<SolarSystem> solarSystems;
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
         private SolarSystem selectedSystem;
@@ -124,6 +123,7 @@ namespace SpaceTraders
             //Get information about the known map.
             solarSystems = ServerManager.Get<List<SolarSystem>>("/systems.json");
             GameObject go;
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Reset();
             stopwatch.Start();
             foreach(SolarSystem sys in solarSystems) {
@@ -135,13 +135,14 @@ namespace SpaceTraders
                 displayedSystems++;
                 go = SpawnSystem(sys);
                 solarSystemObjects.Add(sys, go);
-                if(stopwatch.ElapsedMilliseconds > 1000 / 60) {
+                if(stopwatch.ElapsedMilliseconds > 16.666f) { // 1000 / 60, rounded down.
                     stopwatch.Stop();
                     stopwatch.Reset();
                     yield return new WaitForEndOfFrame();
                     stopwatch.Start();
                 }
             }
+            stopwatch.Stop();
             Debug.Log($"Map loaded! {displayedSystems} within range.");
         }
 
