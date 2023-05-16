@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: NEUTRON_STAR
+  m_Name: YOUNG_STAR
   m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -20,7 +20,7 @@ Material:
   m_LightmapFlags: 1
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 3000
+  m_CustomRenderQueue: 2501
   stringTagMap:
     RenderType: Transparent
   disabledShaderPasses: []
@@ -83,6 +83,6 @@ Material:
     - _UVSec: 0
     - _ZWrite: 0
     m_Colors:
-    - _Color: {r: 0.53648984, g: 0.8301887, b: 0.74332, a: 0.78431374}
-    - _EmissionColor: {r: 0.70891213, g: 1.0970027, b: 0.9831628, a: 0.78431374}
+    - _Color: {r: 1, g: 1, b: 0, a: 0.78431374}
+    - _EmissionColor: {r: 1, g: 1, b: 0, a: 1}
   m_BuildTextureStacks: []

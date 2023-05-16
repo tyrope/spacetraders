@@ -7,15 +7,14 @@ namespace SpaceTraders
     {
         public MapManager MapManager;
         public SolarSystem system;
-        public Material[] materials;
+        public GameObject[] models;
 
         // Start is called before the first frame update
         void Start() {
-            SetPosition();
+            Instantiate(models[(int) system.type], transform.Find("Visuals"));
             gameObject.name = $"[{system.x},{system.y}]{system.symbol}";
-            gameObject.GetComponentInChildren<MeshRenderer>().material = materials[(int)system.type];
-
             gameObject.GetComponentInChildren<TMP_Text>().text = system.symbol;
+            SetPosition();
         }
 
         void OnMouseDown() {

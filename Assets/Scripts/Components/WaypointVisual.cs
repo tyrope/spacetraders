@@ -19,7 +19,7 @@ namespace SpaceTraders
 
         public void SetPosition() {
             float xPos = waypoint.x / 88f; // Scale from -200 < x <  200
-            float yPos = waypoint.y / 88f; //    to      -2.27 < x < 2.227
+            float yPos = waypoint.y / 88f; //    to      -2.2727 < x < 2.2727
             gameObject.transform.position = new Vector3(xPos, 0, yPos);
         }
     }
