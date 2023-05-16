@@ -32,12 +32,12 @@ namespace SpaceTraders {
 
         public void CheckAuthorization() {
             string authToken = inputField.text;
-            object obj = ServerManager.Request<object>(RequestMethod.GET, "/my/agent", "", authToken);
+            object obj = ServerManager.Request<object>("/my/agent", RequestMethod.GET, "", authToken);
             if(obj == null) {
                 errorTime = 2f;
                 return;
             } else {
-                CacheHandler.Save("my/agent", JsonConvert.SerializeObject(obj), new System.TimeSpan(1, 0, 0));
+                CacheHandler.Save("my/agent", JsonConvert.SerializeObject(obj), new System.TimeSpan(0, 1, 0));
                 PlayerPrefs.SetString("AuthToken", authToken);
                 PlayerPrefs.Save();
                 SceneManager.LoadScene(1); // Main Scene.

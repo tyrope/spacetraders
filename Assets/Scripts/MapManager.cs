@@ -138,28 +138,7 @@ namespace SpaceTraders
 
         // Create the world map as we know it.
         IEnumerator CreateMap() {
-            // Load map info from the cache
-            (CacheHandler.RETURNCODE retcode, string data) = CacheHandler.Load("systems.json");
-            switch(retcode) {
-                case CacheHandler.RETURNCODE.SUCCESS:
-                    Debug.Log("Loaded map from cache.");
-                    solarSystems = JsonConvert.DeserializeObject<List<SolarSystem>>(data);
-                    break;
-                case CacheHandler.RETURNCODE.EXPIRED:
-                    Debug.Log("Cached map data expired.");
-                    goto default;
-                case CacheHandler.RETURNCODE.NOT_FOUND:
-                    Debug.Log("No cached map data found.");
-                    goto default;
-                case CacheHandler.RETURNCODE.UNKNOWN_ERROR:
-                    Debug.LogError("Unknown error occured trying to load cached map data.");
-                    goto default;
-                default:
-                    Debug.Log("Getting new map data from the API");
-                    solarSystems = ServerManager.Request<List<SolarSystem>>(RequestMethod.GET, "/systems.json");
-                    CacheHandler.Save("systems.json", JsonConvert.SerializeObject(solarSystems), new System.TimeSpan(7, 0, 0, 0, 0));
-                    break;
-            }
+            solarSystems = ServerManager.CachedRequest<List<SolarSystem>>("/systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET);
 
             GameObject go;
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();

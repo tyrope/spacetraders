@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -9,7 +10,25 @@ namespace SpaceTraders
     {
         private readonly static string Server = "https://api.spacetraders.io/v2/";
 
-        public static T Request<T>( RequestMethod method, string endpoint, string payload = null, string AuthToken = null ) {
+        public static T CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, string payload = null) {
+            // Grab data from cache.
+            (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
+            if(code == CacheHandler.ReturnCode.SUCCESS){
+                // Success!
+                return JsonConvert.DeserializeObject<T>(cacheData);
+            }
+
+            // Grab it from the API instead.
+            T result = Request<T>(endpoint, method, payload);
+
+            // Save it to the Cache. (This might error. Oh well.)
+            CacheHandler.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
+
+            // Done!
+            return result;
+        }
+
+        public static T Request<T>( string endpoint, RequestMethod method, string payload = null, string authToken = null ) {
             string uri = Server + endpoint;
 
             UnityWebRequest request;
@@ -26,11 +45,11 @@ namespace SpaceTraders
 
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
-            if(AuthToken == null) {
+            if(authToken == null) {
                 request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("AuthToken"));
             } else {
                 // Override for AuthCheck to use.
-                request.SetRequestHeader("Authorization", "Bearer " + AuthToken);
+                request.SetRequestHeader("Authorization", "Bearer " + authToken);
             }
             request.SendWebRequest();
 
