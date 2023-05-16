@@ -8,13 +8,14 @@ namespace SpaceTraders
         public MapManager MapManager;
         public SolarSystem solarSystem;
         public Waypoint waypoint;
+        public GameObject[] models;
 
         // Start is called before the first frame update
         void Start() {
-            SetPosition();
+            Instantiate(models[(int) waypoint.type], transform.Find("Visuals"));
             gameObject.name = $"[{waypoint.x},{waypoint.y}]{waypoint.symbol.Split('-')[2]}";
-
             gameObject.GetComponentInChildren<TMP_Text>().text = waypoint.symbol;
+            SetPosition();
         }
 
         public void SetPosition() {
