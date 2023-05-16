@@ -1,11 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
+using Newtonsoft.Json;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace SpaceTraders {
     public class AuthCheck : MonoBehaviour
     {
-        public MapManager mapManager;
         public TMPro.TMP_Text ButtonText;
         public bool RevokeAuthorization = false;
         private TMPro.TMP_InputField inputField;
@@ -13,14 +12,12 @@ namespace SpaceTraders {
 
         // Start is called before the first frame update
         void Start() {
-            mapManager.enabled = false;
             // We're authorized already.
             if(RevokeAuthorization) {
                 PlayerPrefs.DeleteKey("AuthToken");
                 PlayerPrefs.Save();
             }else if(PlayerPrefs.HasKey("AuthToken")) {
-                mapManager.enabled = true;
-                GameObject.Destroy(this.gameObject);
+                SceneManager.LoadScene(1); // Main Scene.
                 return;
             }
 
@@ -41,10 +38,10 @@ namespace SpaceTraders {
                 errorTime = 2f;
                 return;
             } else {
+                CacheHandler.Save("my/agent", JsonConvert.SerializeObject(obj), new System.TimeSpan(1, 0, 0));
                 PlayerPrefs.SetString("AuthToken", authToken);
                 PlayerPrefs.Save();
-                mapManager.enabled = true;
-                GameObject.Destroy(this.gameObject);
+                SceneManager.LoadScene(1); // Main Scene.
             }
         }
     }
