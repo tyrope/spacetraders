@@ -18,6 +18,7 @@ namespace SpaceTraders
         }
 
         void OnMouseDown() {
+            Debug.Log("Selected system: " + system.symbol);
             MapManager.SelectSystem(system);
         }
 

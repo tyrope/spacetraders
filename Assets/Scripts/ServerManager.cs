@@ -67,6 +67,7 @@ namespace SpaceTraders
                     return default;
                 case UnityWebRequest.Result.Success:
                     string ret = request.downloadHandler.text;
+                    Debug.Log($"[API]{endpoint} => {ret}");
                     request.Dispose();
                     return JsonConvert.DeserializeObject<T>(ret);
                 default:

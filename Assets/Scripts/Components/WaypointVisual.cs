@@ -14,7 +14,7 @@ namespace SpaceTraders
         void Start() {
             Instantiate(models[(int) waypoint.type], transform.Find("Visuals"));
             gameObject.name = $"[{waypoint.x},{waypoint.y}]{waypoint.symbol.Split('-')[2]}";
-            gameObject.GetComponentInChildren<TMP_Text>().text = waypoint.symbol;
+            gameObject.GetComponentInChildren<TMP_Text>().text = waypoint.symbol.Split('-')[2];
             SetPosition();
         }
 
