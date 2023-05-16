@@ -35,6 +35,8 @@ namespace SpaceTraders
         }
 
         public static RETURNCODE Save( string name, string payload, TimeSpan lifespanInTicks ) {
+            name = Path.Combine(name.Split('/')); // Split endpoint names
+            name = Path.Combine(name.Split('-')); // Split sector/system/waypoint ID into folders
             string fileName = Path.Combine(Application.persistentDataPath, name + ".json");
             CachedItem cache;
             if(File.Exists(fileName)) {
