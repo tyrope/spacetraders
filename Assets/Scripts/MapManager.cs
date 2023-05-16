@@ -11,6 +11,7 @@ namespace SpaceTraders
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
         public GameObject tableLightCone;
+
         private Transform SystemContainer;
         private List<SolarSystem> solarSystems;
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
@@ -29,12 +30,13 @@ namespace SpaceTraders
         }
 
         void Update() {
-            CheckInputs();
-        }
-        private void CheckInputs() {
+            MapControls();
 
-            #region Map Controls
-            /// Map reset ///
+            // TODO Deselect using in-world stuff, not rightclick.
+            if(Input.GetKeyDown(KeyCode.Mouse1)) { DeselectSystem(); }
+        }
+        private void MapControls() {
+            /// Reset ///
             if(Input.GetKeyDown(KeyCode.Keypad5)) {
                 mapCenter = Vector2.zero;
                 zoom = 50;
@@ -42,7 +44,7 @@ namespace SpaceTraders
                 return;
             }
 
-            /// Scroll the map. ///
+            /// Scroll ///
             float scrollSpeed = 5f;
             Vector2 panDir = Vector2.zero;
 
@@ -68,7 +70,6 @@ namespace SpaceTraders
             if(zoomDir != 0) {
                 ChangeZoom(Time.deltaTime * zoomSpeed * zoomDir);
             }
-            #endregion
         }
 
         public float GetZoom() => zoom;
@@ -86,6 +87,7 @@ namespace SpaceTraders
         public void DeselectSystem() {
             SelectSystem(null);
         }
+
         public void SelectSystem(SolarSystem sys) {
             if(selectedSystem != null && solarSystemObjects.ContainsKey(selectedSystem)) {
                 //Nuke the waypoints of the previously selected system.
@@ -98,6 +100,7 @@ namespace SpaceTraders
                 tableLightCone.SetActive(false);
                 return;
             }
+
             tableLightCone.SetActive(true);
             foreach(Waypoint wp in sys.waypoints) {
                 SpawnWaypoint(wp, sys, solarSystemObjects[sys]);
