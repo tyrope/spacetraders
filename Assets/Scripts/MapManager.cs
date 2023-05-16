@@ -157,7 +157,7 @@ namespace SpaceTraders
                 default:
                     Debug.Log("Getting new map data from the API");
                     solarSystems = ServerManager.Request<List<SolarSystem>>(RequestMethod.GET, "/systems.json");
-                    CacheHandler.Save("systems.json", JsonConvert.SerializeObject(solarSystems), new System.TimeSpan(1, 0, 0, 0, 0));
+                    CacheHandler.Save("systems.json", JsonConvert.SerializeObject(solarSystems), new System.TimeSpan(7, 0, 0, 0, 0));
                     break;
             }
 
