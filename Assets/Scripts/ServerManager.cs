@@ -1,44 +1,27 @@
 using Newtonsoft.Json;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace SpaceTraders
 {
-    public enum REQUEST_METHOD { GET, POST }
-
-    public class ServerResponse<T>
-    {
-        public List<T> data;
-        public Meta meta;
-
-        public override string ToString() {
-            return $"Server Response with {data.Count}/{meta.total} results. (Limit: {meta.limit}, page {meta.page}/{meta.TotalPages}";
-        }
-    }
-
-    public class Meta
-    {
-        public int total;
-        public int page;
-        public int limit;
-        public int TotalPages => Mathf.CeilToInt(total / limit);
-    }
-
+    public enum RequestMethod { GET, POST }
     public class ServerManager
     {
         private readonly static string Server = "https://api.spacetraders.io/v2/";
 
-        public static T Request<T>( REQUEST_METHOD method, string endpoint, string payload = null, string AuthToken = null ) {
+        public static T Request<T>( RequestMethod method, string endpoint, string payload = null, string AuthToken = null ) {
             string uri = Server + endpoint;
 
             UnityWebRequest request;
-            if(method == REQUEST_METHOD.GET) {
-                request = UnityWebRequest.Get(new System.Uri(uri));
-            } else if (method == REQUEST_METHOD.POST) {
-                request = UnityWebRequest.Post(new System.Uri(uri), payload);
-            } else {
-                throw new System.NotImplementedException("The method you've requested is not yet available.");
+            switch(method) {
+                case RequestMethod.GET:
+                    request = UnityWebRequest.Get(new System.Uri(uri));
+                    break;
+                case RequestMethod.POST:
+                    request = UnityWebRequest.Post(new System.Uri(uri), payload);
+                    break;
+                default:
+                    throw new System.NotImplementedException("The method you've requested is not yet available.");
             }
 
             request.downloadHandler = new DownloadHandlerBuffer();
