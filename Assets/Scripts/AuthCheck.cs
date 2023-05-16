@@ -6,8 +6,9 @@ namespace SpaceTraders {
     public class AuthCheck : MonoBehaviour
     {
         public TMPro.TMP_Text ButtonText;
+        public TMPro.TMP_InputField inputField;
+
         public bool RevokeAuthorization = false;
-        private TMPro.TMP_InputField inputField;
         private float errorTime = 0f;
 
         // Start is called before the first frame update
@@ -20,8 +21,6 @@ namespace SpaceTraders {
                 SceneManager.LoadScene(1); // Main Scene.
                 return;
             }
-
-            inputField = gameObject.GetComponentInChildren<TMPro.TMP_InputField>();
         }
 
         void Update() {
@@ -33,7 +32,7 @@ namespace SpaceTraders {
 
         public void CheckAuthorization() {
             string authToken = inputField.text;
-            object obj = ServerManager.Request<object>(RequestMethod.GET, "/my/agent", authToken);
+            object obj = ServerManager.Request<object>(RequestMethod.GET, "/my/agent", "", authToken);
             if(obj == null) {
                 errorTime = 2f;
                 return;

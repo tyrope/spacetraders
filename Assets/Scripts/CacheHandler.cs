@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -34,18 +35,36 @@ namespace SpaceTraders
             }
         }
 
-        public static RETURNCODE Save( string name, string payload, TimeSpan lifespanInTicks ) {
-            name = Path.Combine(name.Split('/')); // Split endpoint names
-            name = Path.Combine(name.Split('-')); // Split sector/system/waypoint ID into folders
-            string fileName = Path.Combine(Application.persistentDataPath, name + ".json");
-            CachedItem cache;
-            if(File.Exists(fileName)) {
-                cache = JsonConvert.DeserializeObject<CachedItem>(File.ReadAllText(fileName));
-                cache.Update(payload, lifespanInTicks);
-            } else {
-                cache = new CachedItem(payload, lifespanInTicks);
+        public static RETURNCODE Save( string name, string payload, TimeSpan lifespan ) {
+            List<string> pathSegments = new List<string>();
+            // Split endpoint names
+            foreach(string segment in name.Split('/')) {
+                pathSegments.Add(segment);
             }
-            File.WriteAllText(fileName, JsonConvert.SerializeObject(cache));
+
+            // Split sector/system/waypoint ID into folders
+            name = pathSegments[pathSegments.Count-1];
+            pathSegments.RemoveAt(pathSegments.Count-1);
+            foreach(string segment in name.Split('-')) {
+                pathSegments.Add(segment);
+            }
+
+            name = pathSegments[pathSegments.Count-1];
+            pathSegments.RemoveAt(pathSegments.Count-1);
+
+            string filePath = Path.Combine(Application.persistentDataPath, string.Join(Path.DirectorySeparatorChar, pathSegments), name + ".json");
+            CachedItem cache;
+            if(File.Exists(filePath)) {
+                cache = JsonConvert.DeserializeObject<CachedItem>(File.ReadAllText(filePath));
+                cache.Update(payload, lifespan);
+            } else {
+                cache = new CachedItem(payload, lifespan);
+
+                // Make sure the directory exists...
+                Directory.CreateDirectory(Path.Combine(Application.persistentDataPath, string.Join(Path.DirectorySeparatorChar, pathSegments)));
+            }
+
+            File.WriteAllText(filePath, JsonConvert.SerializeObject(cache));
             return RETURNCODE.SUCCESS;
         }
 
