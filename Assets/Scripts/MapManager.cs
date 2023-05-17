@@ -95,11 +95,7 @@ namespace SpaceTraders
                     GameObject.Destroy(t.gameObject);
                 }
             }
-            if(sys == null) {
-                // We're deselecting.
-                tableLightCone.SetActive(false);
-                return;
-            }
+            if(sys == null) return;
 
             tableLightCone.SetActive(true);
             foreach(Waypoint wp in sys.waypoints) {
