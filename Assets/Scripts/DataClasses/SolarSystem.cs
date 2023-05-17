@@ -10,7 +10,7 @@ namespace SpaceTraders
         public int x;
         public int y;
         public List<Waypoint> waypoints;
-        public List<object> factions;
+        public List<Faction> factions;
 
         public override string ToString() {
             return $"System[{symbol}] @ {x}, {y}. Type: {type}. {waypoints.Count} waypoints.";
