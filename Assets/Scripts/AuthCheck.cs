@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -10,6 +11,7 @@ namespace SpaceTraders {
 
         public bool RevokeAuthorization = false;
         private float errorTime = 0f;
+        private CancellationTokenSource asyncCancelToken;
 
         // Start is called before the first frame update
         void Start() {
@@ -30,14 +32,18 @@ namespace SpaceTraders {
             ButtonText.color = Color.Lerp(Color.white, Color.red, errorTime / 2f);
         }
 
-        public void CheckAuthorization() {
+        private void OnDestroy() {
+            asyncCancelToken.Cancel();
+        }
+
+        public async void CheckAuthorization() {
             string authToken = inputField.text;
-            object obj = ServerManager.Request<object>("/my/agent", RequestMethod.GET, "", authToken);
-            if(obj == null) {
+            AgentInfo agentInfo = await ServerManager.Request<AgentInfo>("/my/agent", RequestMethod.GET, asyncCancelToken, null, authToken);
+            if(agentInfo == null) {
                 errorTime = 2f;
                 return;
             } else {
-                CacheHandler.Save("my/agent", JsonConvert.SerializeObject(obj), new System.TimeSpan(0, 1, 0));
+                CacheHandler.Save("my/agent", JsonConvert.SerializeObject(agentInfo), new System.TimeSpan(0, 1, 0));
                 PlayerPrefs.SetString("AuthToken", authToken);
                 PlayerPrefs.Save();
                 SceneManager.LoadScene(1); // Main Scene.

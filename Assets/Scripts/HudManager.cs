@@ -1,3 +1,4 @@
+using System.Threading;
 using TMPro;
 using UnityEngine;
 
@@ -7,6 +8,8 @@ namespace SpaceTraders
     public class HudManager : MonoBehaviour
     {
         public GameObject HUD;
+        private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
+
         private TMP_Text AgentInfoDisplay;
         // Start is called before the first frame update
         void Start() {
@@ -18,8 +21,16 @@ namespace SpaceTraders
             UpdateAgentInfo();
         }
 
-        private void UpdateAgentInfo() {
-            AgentInfo info = ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0,1,0), RequestMethod.GET);
+        private void OnDestroy() {
+            asyncCancelToken.Cancel();
+        }
+
+        private void OnApplicationQuit() {
+            OnDestroy();
+        }
+
+        private async void UpdateAgentInfo() {
+            AgentInfo info = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0,1,0), RequestMethod.GET, asyncCancelToken);
             AgentInfoDisplay.text = $"Admiral {info.symbol} - Account balance: {info.credits:n0}Cr";
         }
     }

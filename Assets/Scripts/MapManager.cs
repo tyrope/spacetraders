@@ -1,8 +1,7 @@
-using Newtonsoft.Json;
-using System.Collections;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine;
-
+using System.Threading;
 
 namespace SpaceTraders
 {
@@ -10,7 +9,6 @@ namespace SpaceTraders
     {
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
-        public GameObject tableLightCone;
 
         private Transform SystemContainer;
         private List<SolarSystem> solarSystems;
@@ -20,13 +18,14 @@ namespace SpaceTraders
         private Vector2 mapCenter = Vector2.zero;
         private float zoom = 50;
         private int displayedSystems;
+        private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
 
         void Start() {
             SystemContainer = new GameObject("SystemContainer").transform;
             SystemContainer.position = Vector3.zero;
             SystemContainer.parent = gameObject.transform.parent;
 
-            StartCoroutine(CreateMap());
+            CreateMap();
         }
 
         void Update() {
@@ -35,6 +34,14 @@ namespace SpaceTraders
             // TODO Deselect using in-world stuff, not rightclick.
             if(Input.GetKeyDown(KeyCode.Mouse1)) { DeselectSystem(); }
         }
+        private void OnDestroy() {
+            asyncCancelToken.Cancel();
+        }
+
+        private void OnApplicationQuit() {
+            OnDestroy();
+        }
+
         private void MapControls() {
             /// Reset ///
             if(Input.GetKeyDown(KeyCode.Keypad5)) {
@@ -88,7 +95,7 @@ namespace SpaceTraders
             SelectSystem(null);
         }
 
-        public void SelectSystem(SolarSystem sys) {
+        public async void SelectSystem(SolarSystem sys) {
             if(selectedSystem != null && solarSystemObjects.ContainsKey(selectedSystem)) {
                 //Nuke the waypoints of the previously selected system.
                 foreach(Transform t in solarSystemObjects[selectedSystem].transform.Find("Waypoints")) {
@@ -97,8 +104,16 @@ namespace SpaceTraders
             }
             if(sys == null) return;
 
-            tableLightCone.SetActive(true);
-            foreach(Waypoint wp in sys.waypoints) {
+            Waypoint wp;
+            for(int i = 0; i < sys.waypoints.Count; i++) {
+                // Load from cache.
+                wp = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);   
+
+                // Update the system in memory.
+                if(wp != sys.waypoints[i]) {
+                    sys.waypoints[i] = wp;
+                }
+
                 SpawnWaypoint(wp, sys, solarSystemObjects[sys]);
             }
             selectedSystem = sys;
@@ -133,14 +148,17 @@ namespace SpaceTraders
         }
 
         // Create the world map as we know it.
-        IEnumerator CreateMap() {
-            solarSystems = ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET);
+        async void CreateMap() {
+            solarSystems = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, asyncCancelToken);
 
             GameObject go;
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Reset();
             stopwatch.Start();
             foreach(SolarSystem sys in solarSystems) {
+                if(asyncCancelToken.IsCancellationRequested) {
+                    return;
+                }
                 if(sys.x < zoom * -1 + mapCenter.x || sys.x > zoom + mapCenter.x || sys.y < zoom * -1 + mapCenter.y || sys.y > zoom + mapCenter.y) {
                     // Skip out-of-bounds systems.
                     continue;
@@ -152,7 +170,7 @@ namespace SpaceTraders
                 if(stopwatch.ElapsedMilliseconds > 16.666f) { // 1000 / 60, rounded down.
                     stopwatch.Stop();
                     stopwatch.Reset();
-                    yield return new WaitForEndOfFrame();
+                    await Task.Yield();
                     stopwatch.Start();
                 }
             }

@@ -1,25 +1,35 @@
 using Newtonsoft.Json;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace SpaceTraders
 {
+
     public enum RequestMethod { GET, POST }
     public class ServerManager
     {
+        private class ServerResponse<T>
+        {
+            public T data;
+            public Meta meta;
+        }
+
         private readonly static string Server = "https://api.spacetraders.io/v2/";
 
-        public static T CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, string payload = null) {
+        public async static Task<T> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
             if(code == CacheHandler.ReturnCode.SUCCESS){
                 // Success!
+                Debug.Log($"[Cache]{endpoint} => {cacheData}");
                 return JsonConvert.DeserializeObject<T>(cacheData);
             }
 
             // Grab it from the API instead.
-            T result = Request<T>(endpoint, method, payload);
+            T result = await Request<T>(endpoint, method, cancel, payload);
 
             // Save it to the Cache. (This might error. Oh well.)
             CacheHandler.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
@@ -28,7 +38,7 @@ namespace SpaceTraders
             return result;
         }
 
-        public static T Request<T>( string endpoint, RequestMethod method, string payload = null, string authToken = null ) {
+        public async static Task<T> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null) {
             string uri = Server + endpoint;
 
             UnityWebRequest request;
@@ -53,7 +63,9 @@ namespace SpaceTraders
             }
             request.SendWebRequest();
 
-            while(request.result == UnityWebRequest.Result.InProgress); // Thread-blocking!
+            while(request.result == UnityWebRequest.Result.InProgress) {
+                await Task.Yield();
+            }
 
             switch(request.result) {
                 case UnityWebRequest.Result.ConnectionError:
