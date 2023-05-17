@@ -68,13 +68,13 @@ namespace SpaceTraders
             }
 
             switch(request.result) {
-                case UnityWebRequest.Result.ConnectionError:
-                case UnityWebRequest.Result.DataProcessingError:
-                    Debug.LogError("Error: " + request.error);
+                case UnityWebRequest.Result.ProtocolError:
+                    Debug.LogError($"[API:{method}]{endpoint} => HTTPError: {request.error}\n{request.downloadHandler.text}");
                     request.Dispose();
                     return default;
-                case UnityWebRequest.Result.ProtocolError:
-                    Debug.LogError("HTTP Error: " + request.error);
+                case UnityWebRequest.Result.ConnectionError:
+                case UnityWebRequest.Result.DataProcessingError:
+                    Debug.LogError($"[API:{method}]{endpoint} => Error: {request.error}\n{request.downloadHandler.text}");
                     request.Dispose();
                     return default;
                 case UnityWebRequest.Result.Success:
