@@ -78,10 +78,16 @@ namespace SpaceTraders
                     request.Dispose();
                     return default;
                 case UnityWebRequest.Result.Success:
-                    string ret = request.downloadHandler.text;
-                    Debug.Log($"[API]{endpoint} => {ret}");
+                    string retstring = request.downloadHandler.text;
+                    Debug.Log($"[API:{method}]{endpoint} => {retstring}");
                     request.Dispose();
-                    return JsonConvert.DeserializeObject<T>(ret);
+                    try {
+                        // Unwrap a potential ServerResponse.
+                        return JsonConvert.DeserializeObject<ServerResponse<T>>(retstring).data;
+                    } catch(JsonSerializationException) {
+                        // There was no ServerResponse wrapper.
+                        return JsonConvert.DeserializeObject<T>(retstring);
+                    }
                 default:
                     Debug.LogError("Theoretically unreachable code found!");
                     request.Dispose();
