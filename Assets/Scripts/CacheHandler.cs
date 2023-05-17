@@ -65,7 +65,9 @@ namespace SpaceTraders
         }
 
         public static (ReturnCode, string) Load( string name ) {
-            string fileName = Path.Combine(Application.persistentDataPath, name + ".json");
+            // No more systems.json.json!
+            if(name.EndsWith(".json") == false) name += ".json";
+            string fileName = Path.Combine(Application.persistentDataPath, name);
             if(File.Exists(fileName) == false) {
                 return (ReturnCode.NOT_FOUND, null);
             }
