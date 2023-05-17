@@ -19,7 +19,7 @@ namespace SpaceTraders
 
         private readonly static string Server = "https://api.spacetraders.io/v2/";
 
-        public async static Task<T> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
+        public async static Task<bool, T> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
             if(code == CacheHandler.ReturnCode.SUCCESS){
@@ -29,16 +29,18 @@ namespace SpaceTraders
             }
 
             // Grab it from the API instead.
-            T result = await Request<T>(endpoint, method, cancel, payload);
+            (bool success, T result) = await Request<T>(endpoint, method, cancel, payload);
 
-            // Save it to the Cache. (This might error. Oh well.)
-            CacheHandler.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
+            if(success) {
+                // Save it to the Cache. (This might error. Oh well.)
+                CacheHandler.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
+            }
 
             // Done!
-            return result;
+            return (success, result);
         }
 
-        public async static Task<T> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null) {
+        public async static Task<(bool, T)> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null) {
             string uri = Server + endpoint;
 
             UnityWebRequest request;
@@ -71,27 +73,27 @@ namespace SpaceTraders
                 case UnityWebRequest.Result.ProtocolError:
                     Debug.LogError($"[API:{method}]{endpoint} => HTTPError: {request.error}\n{request.downloadHandler.text}");
                     request.Dispose();
-                    return default;
+                    return (false, default);
                 case UnityWebRequest.Result.ConnectionError:
                 case UnityWebRequest.Result.DataProcessingError:
                     Debug.LogError($"[API:{method}]{endpoint} => Error: {request.error}\n{request.downloadHandler.text}");
                     request.Dispose();
-                    return default;
+                    return (false, default);
                 case UnityWebRequest.Result.Success:
                     string retstring = request.downloadHandler.text;
                     Debug.Log($"[API:{method}]{endpoint} => {retstring}");
                     request.Dispose();
                     try {
                         // Unwrap a potential ServerResponse.
-                        return JsonConvert.DeserializeObject<ServerResponse<T>>(retstring).data;
+                        return (true, JsonConvert.DeserializeObject<ServerResponse<T>>(retstring).data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
-                        return JsonConvert.DeserializeObject<T>(retstring);
+                        return (true, JsonConvert.DeserializeObject<T>(retstring));
                     }
                 default:
                     Debug.LogError("Theoretically unreachable code found!");
                     request.Dispose();
-                    return default;
+                    return (false, default);
             }
         }
     }
