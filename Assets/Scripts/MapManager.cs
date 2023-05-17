@@ -105,9 +105,12 @@ namespace SpaceTraders
             if(sys == null) return;
 
             Waypoint wp;
+            bool success;
             for(int i = 0; i < sys.waypoints.Count; i++) {
                 // Load from cache.
-                wp = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);   
+                (success, wp) = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+                
+                if(!success) { continue; } // Skip waypoints that error for some reason.
 
                 // Update the system in memory.
                 if(wp != sys.waypoints[i]) {
@@ -148,8 +151,20 @@ namespace SpaceTraders
         }
 
         // Create the world map as we know it.
-        async void CreateMap() {
-            solarSystems = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, asyncCancelToken);
+        async void CreateMap(int retries = 0) {
+            bool success;
+            (success, solarSystems) = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, asyncCancelToken);
+            if(!success) {
+                Debug.Log("Failed to load systems.json");
+                if(retries < 5) {
+                    await Task.Delay(1000);
+                    CreateMap(retries + 1);
+                    return;
+                } else {
+                    Debug.LogError("5 failed attempts to load systems.json, something is seriously wrong.");
+                    return;
+                }
+            }
 
             GameObject go;
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();

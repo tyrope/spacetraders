@@ -42,8 +42,10 @@ namespace SpaceTraders
         }
 
         private async void UpdateAgentInfo() {
-            AgentInfo info = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0,1,0), RequestMethod.GET, asyncCancelToken);
-            AgentInfoDisplay.text = $"Admiral {info.symbol} - Account balance: {info.credits:n0}Cr";
+            (bool success, AgentInfo info) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0,1,0), RequestMethod.GET, asyncCancelToken);
+            if(success) {
+                AgentInfoDisplay.text = $"Admiral {info.symbol} - Account balance: {info.credits:n0}Cr";
+            }
         }
 
         private async void UpdateFleetHUD() {

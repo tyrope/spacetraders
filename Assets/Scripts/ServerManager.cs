@@ -19,13 +19,13 @@ namespace SpaceTraders
 
         private readonly static string Server = "https://api.spacetraders.io/v2/";
 
-        public async static Task<bool, T> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
+        public async static Task<(bool, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
             if(code == CacheHandler.ReturnCode.SUCCESS){
                 // Success!
                 Debug.Log($"[Cache]{endpoint} => {cacheData}");
-                return JsonConvert.DeserializeObject<T>(cacheData);
+                return (true, JsonConvert.DeserializeObject<T>(cacheData));
             }
 
             // Grab it from the API instead.

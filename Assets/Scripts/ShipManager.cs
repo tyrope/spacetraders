@@ -24,14 +24,22 @@ namespace SpaceTraders {
         }
 
         private async void LoadShips() {
-            List<Ship> shipList = await ServerManager.CachedRequest<List<Ship>>("my/ships", new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
+            (bool success, List<Ship> shipList) = await ServerManager.CachedRequest<List<Ship>>("my/ships", new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
+            if(!success) {
+                return;
+            }
             foreach(Ship ship in shipList) {
                 Ships.Add(ship.symbol);
             }
         }
 
         public async Task<Ship> GetShip(string symbol) {
-            return await ServerManager.CachedRequest<Ship>("my/ships/" + symbol, new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
+            (bool success, Ship ship) = await ServerManager.CachedRequest<Ship>("my/ships/" + symbol, new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
+            if(success) {
+                return ship;
+            } else {
+                return null;
+            }
         }
     }
 }

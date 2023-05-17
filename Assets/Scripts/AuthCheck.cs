@@ -38,8 +38,8 @@ namespace SpaceTraders {
 
         public async void CheckAuthorization() {
             string authToken = inputField.text;
-            AgentInfo agentInfo = await ServerManager.Request<AgentInfo>("/my/agent", RequestMethod.GET, asyncCancelToken, null, authToken);
-            if(agentInfo == null) {
+            (bool success, AgentInfo agentInfo) = await ServerManager.Request<AgentInfo>("/my/agent", RequestMethod.GET, asyncCancelToken, null, authToken);
+            if(!success || agentInfo == null) {
                 errorTime = 2f;
                 return;
             } else {
