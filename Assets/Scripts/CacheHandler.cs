@@ -42,17 +42,13 @@ namespace SpaceTraders
                 pathSegments.Add(segment);
             }
 
-            // Split sector/system/waypoint ID into folders
-            name = pathSegments[pathSegments.Count-1];
-            pathSegments.RemoveAt(pathSegments.Count-1);
-            foreach(string segment in name.Split('-')) {
-                pathSegments.Add(segment);
-            }
-
-            name = pathSegments[pathSegments.Count-1];
+            name = pathSegments[^1];
             pathSegments.RemoveAt(pathSegments.Count-1);
 
-            string filePath = Path.Combine(Application.persistentDataPath, string.Join(Path.DirectorySeparatorChar, pathSegments), name + ".json");
+            // No more systems.json.json!
+            if(name.EndsWith(".json") == false) name += ".json";
+
+            string filePath = Path.Combine(Application.persistentDataPath, string.Join(Path.DirectorySeparatorChar, pathSegments), name);
             CachedItem cache;
             if(File.Exists(filePath)) {
                 cache = JsonConvert.DeserializeObject<CachedItem>(File.ReadAllText(filePath));
