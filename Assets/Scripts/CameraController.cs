@@ -9,6 +9,8 @@ namespace SpaceTraders
         public float runSpeed = 10f;
         private Transform camTransform;
 
+        private bool mouseReleased = false;
+
         // Start is called before the first frame update
         void Start() {
             camTransform = Camera.main.transform;
@@ -17,6 +19,16 @@ namespace SpaceTraders
 
         // Update is called once per frame
         void Update() {
+            if(Input.GetKeyDown(KeyCode.LeftAlt)) {
+                // Toggle mouse release status
+                mouseReleased = !mouseReleased;
+
+                // Toggle the cursor.
+                Cursor.lockState = mouseReleased ? CursorLockMode.None : CursorLockMode.Locked;
+            }
+
+            // We're in UI mode.
+            if(mouseReleased) return;
             MovePlayer();
             RotateCamera();
         }
