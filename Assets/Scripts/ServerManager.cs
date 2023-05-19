@@ -27,7 +27,7 @@ namespace SpaceTraders
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
             if(code == CacheHandler.ReturnCode.SUCCESS){
                 // Success!
-                Debug.Log($"[Cache]{endpoint} => {cacheData}");
+                Debug.Log($"[Cache]{endpoint}\n{cacheData}");
                 return (true, JsonConvert.DeserializeObject<T>(cacheData));
             }
 

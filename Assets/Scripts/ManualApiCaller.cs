@@ -10,9 +10,6 @@ namespace SpaceTraders
         public TMPro.TMP_Dropdown method;
 
         private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
-        // Start is called before the first frame update
-        void Start() {
-        }
 
         #pragma warning disable CS4014 // Don't warn me about not awaiting async stuff. Manual API calls are expected to block UI.
         public void CallAPI() {

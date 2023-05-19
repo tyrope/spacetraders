@@ -9,8 +9,6 @@ namespace SpaceTraders
         public int limit;
         public int TotalPages => Mathf.CeilToInt((float) total / (float)limit);
 
-        public override string ToString() {
-            return $"{limit} results (Page {page}/{TotalPages})";
-        }
+        public override string ToString() => $"{Mathf.Min(total, limit)} result{total > 1: \"s\"} (Page {page}/{TotalPages})";
     }
 }
