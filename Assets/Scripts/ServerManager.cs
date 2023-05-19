@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -18,6 +19,8 @@ namespace SpaceTraders
         }
 
         private readonly static string Server = "https://api.spacetraders.io/v2/";
+
+        private static readonly Queue<DateTime> LastCalls = new Queue<DateTime>();
 
         public async static Task<(bool, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
@@ -63,7 +66,29 @@ namespace SpaceTraders
                 // Override for AuthCheck to use.
                 request.SetRequestHeader("Authorization", "Bearer " + authToken);
             }
+
+            // Rate limiting.
+            while(LastCalls.Count >= 10) {
+                // If we're caught in this block, we've hit the rate limiter.
+                while(LastCalls.Count > 0 && DateTime.Compare(
+                        LastCalls.Peek(),
+                        DateTime.Now - new TimeSpan(0, 0, 0, 0, 500)
+                ) < 0) {
+                    // Expire any tokens older than 500ms
+                    LastCalls.Dequeue();
+                }
+
+                // Check if we're allowed to break out of the buffer yet.
+                if(LastCalls.Count < 10) {
+                    break;
+                }
+
+                // Wait a frame.
+                await Task.Yield();
+            }
+
             request.SendWebRequest();
+            LastCalls.Enqueue(DateTime.Now);
 
             while(request.result == UnityWebRequest.Result.InProgress) {
                 await Task.Yield();
@@ -71,23 +96,29 @@ namespace SpaceTraders
 
             switch(request.result) {
                 case UnityWebRequest.Result.ProtocolError:
-                    Debug.LogError($"[API:{method}]{endpoint} => HTTPError: {request.error}\n{request.downloadHandler.text}");
+                    Debug.LogError($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\nHTTPError: {request.error}\n{request.downloadHandler.text}");
                     request.Dispose();
                     return (false, default);
                 case UnityWebRequest.Result.ConnectionError:
                 case UnityWebRequest.Result.DataProcessingError:
-                    Debug.LogError($"[API:{method}]{endpoint} => Error: {request.error}\n{request.downloadHandler.text}");
+                    Debug.LogError($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\nError: {request.error}\n{request.downloadHandler.text}");
                     request.Dispose();
                     return (false, default);
                 case UnityWebRequest.Result.Success:
                     string retstring = request.downloadHandler.text;
-                    Debug.Log($"[API:{method}]{endpoint} => {retstring}");
                     request.Dispose();
                     try {
                         // Unwrap a potential ServerResponse.
-                        return (true, JsonConvert.DeserializeObject<ServerResponse<T>>(retstring).data);
+                        ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
+                        if(resp.meta != null) {
+                            Debug.Log($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\nShowing {resp.meta}\n{retstring}");
+                        } else {
+                            Debug.Log($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\n{retstring}");
+                        }
+                        return (true, resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
+                        Debug.Log($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\n{retstring}");
                         return (true, JsonConvert.DeserializeObject<T>(retstring));
                     }
                 default:
