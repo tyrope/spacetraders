@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-namespace SpaceTraders
+namespace STCommander
 {
     public class WaypointVisual : MonoBehaviour
     {

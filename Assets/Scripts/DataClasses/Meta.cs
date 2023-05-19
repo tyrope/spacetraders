@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace SpaceTraders
+namespace STCommander
 {
     public class Meta
     {

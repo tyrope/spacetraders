@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Threading;
 
-namespace SpaceTraders
+namespace STCommander
 {
     public class MapManager : MonoBehaviour
     {

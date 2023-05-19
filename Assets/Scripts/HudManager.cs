@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
-namespace SpaceTraders
+namespace STCommander
 {
 
     public class HudManager : MonoBehaviour

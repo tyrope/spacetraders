@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace SpaceTraders {
+namespace STCommander {
     public class ShipManager : MonoBehaviour
     {
         public List<string> Ships;

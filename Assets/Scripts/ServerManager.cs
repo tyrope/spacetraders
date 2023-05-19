@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace SpaceTraders
+namespace STCommander
 {
 
     public enum RequestMethod { GET, POST }

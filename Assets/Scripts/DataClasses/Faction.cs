@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SpaceTraders
+namespace STCommander
 {
     public class Faction
     {

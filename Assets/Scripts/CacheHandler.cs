@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-namespace SpaceTraders
+namespace STCommander
 {
     public class CacheHandler {
         public enum ReturnCode { UNKNOWN_ERROR = -1, SUCCESS, NOT_FOUND, EXPIRED }

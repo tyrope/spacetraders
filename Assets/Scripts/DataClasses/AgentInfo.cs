@@ -1,4 +1,4 @@
-﻿namespace SpaceTraders
+﻿namespace STCommander
 {
     public class AgentInfo {
         public string accountId;
