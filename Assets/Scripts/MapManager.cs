@@ -55,14 +55,14 @@ namespace STCommander
             float scrollSpeed = 5f;
             Vector2 panDir = Vector2.zero;
 
-            if(Input.GetKey(KeyCode.Keypad1)) panDir += Vector2.up + Vector2.right;
-            if(Input.GetKey(KeyCode.Keypad2)) panDir += Vector2.up;
-            if(Input.GetKey(KeyCode.Keypad3)) panDir += Vector2.up + Vector2.left;
+            if(Input.GetKey(KeyCode.Keypad1)) panDir += Vector2.down + Vector2.right;
+            if(Input.GetKey(KeyCode.Keypad2)) panDir += Vector2.down;
+            if(Input.GetKey(KeyCode.Keypad3)) panDir += Vector2.down + Vector2.left;
             if(Input.GetKey(KeyCode.Keypad4)) panDir += Vector2.right;
             if(Input.GetKey(KeyCode.Keypad6)) panDir += Vector2.left;
-            if(Input.GetKey(KeyCode.Keypad7)) panDir += Vector2.down + Vector2.right;
-            if(Input.GetKey(KeyCode.Keypad8)) panDir += Vector2.down;
-            if(Input.GetKey(KeyCode.Keypad9)) panDir += Vector2.down + Vector2.left;
+            if(Input.GetKey(KeyCode.Keypad7)) panDir += Vector2.up + Vector2.right;
+            if(Input.GetKey(KeyCode.Keypad8)) panDir += Vector2.up;
+            if(Input.GetKey(KeyCode.Keypad9)) panDir += Vector2.up + Vector2.left;
         
             if(panDir != Vector2.zero) {
                 PanMap(panDir.normalized * Time.deltaTime * scrollSpeed);

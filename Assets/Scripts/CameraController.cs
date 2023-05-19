@@ -7,28 +7,14 @@ namespace STCommander
         public float mouseSensitivity = 4f;
         public float walkSpeed = 5f;
         public float runSpeed = 10f;
+        public Transform jigTransform;
         private Transform camTransform;
-
-        private bool mouseReleased = false;
 
         // Start is called before the first frame update
         void Start() {
             camTransform = Camera.main.transform;
-            Cursor.lockState = CursorLockMode.Locked;
         }
-
-        // Update is called once per frame
-        void Update() {
-            if(Input.GetKeyDown(KeyCode.LeftAlt)) {
-                // Toggle mouse release status
-                mouseReleased = !mouseReleased;
-
-                // Toggle the cursor.
-                Cursor.lockState = mouseReleased ? CursorLockMode.None : CursorLockMode.Locked;
-            }
-
-            // We're in UI mode.
-            if(mouseReleased) return;
+        public void ParseInputs() {
             MovePlayer();
             RotateCamera();
         }
@@ -50,7 +36,7 @@ namespace STCommander
             if(Input.GetKey(KeyCode.D)) {
                 moveDirection += Vector3.right;
             }
-            transform.Translate(moveDirection * moveSpeed * Time.deltaTime);
+            jigTransform.Translate(moveDirection * moveSpeed * Time.deltaTime);
         }
 
         private float cameraRotationY;
@@ -63,8 +49,8 @@ namespace STCommander
             cameraRotationY = Mathf.Clamp(cameraRotationY, -90f, 90f);
 
             // Send it.
-            transform.eulerAngles = new Vector3(0, transform.eulerAngles.y + y, 0);
-            camTransform.eulerAngles = new Vector3(-cameraRotationY, transform.eulerAngles.y + y, 0);
+            jigTransform.eulerAngles = new Vector3(0, jigTransform.eulerAngles.y + y, 0);
+            camTransform.eulerAngles = new Vector3(-cameraRotationY, jigTransform.eulerAngles.y + y, 0);
         }
     }
 }
