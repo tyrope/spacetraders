@@ -90,8 +90,8 @@ namespace STCommander
                 // Wait a frame.
                 await Task.Yield();
             }
-            request.SendWebRequest();
             LastCalls.Enqueue(DateTime.Now);
+            request.SendWebRequest();
 
             while(request.result == UnityWebRequest.Result.InProgress) { await Task.Yield(); }
 
