@@ -19,7 +19,7 @@ namespace STCommander
                 public string destinationSymbol;
                 public int unitsRequired;
                 public int unitsFulfilled;
-                public override string ToString() => $"{unitsFulfilled}/{unitsFulfilled} {tradeSymbol}→{destinationSymbol}";
+                public override string ToString() => $"{unitsFulfilled}/{unitsRequired} {tradeSymbol}→{destinationSymbol}";
             }
             public DateTime deadline;
             public Payment payment;
