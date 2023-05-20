@@ -495,6 +495,7 @@ RectTransform:
   m_Children:
   - {fileID: 62435377}
   - {fileID: 1116749979}
+  - {fileID: 402786661}
   - {fileID: 407407180}
   - {fileID: 894159938}
   - {fileID: 788127393}
@@ -1973,6 +1974,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   HUD: {fileID: 98782181}
   ShipPrefab: {fileID: 7810470446194310621, guid: 566ab034f31c9a44e9407db06aa9a876, type: 3}
+  ContractPrefab: {fileID: 8971030442243372100, guid: 48320a51ad8585b40a9c5e0087b81af8, type: 3}
 --- !u!114 &1101542738
 MonoBehaviour:
   m_ObjectHideFlags: 0

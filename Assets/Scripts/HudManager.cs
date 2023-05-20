@@ -12,12 +12,15 @@ namespace STCommander
     {
         public GameObject HUD;
         public GameObject ShipPrefab;
+        public GameObject ContractPrefab;
 
         private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
 
         private TMP_Text AgentInfoDisplay;
         private RectTransform FleetTransform;
+        private RectTransform ContractsTransform;
         private readonly Dictionary<string, GameObject> ShipGOs = new Dictionary<string, GameObject>();
+        private readonly Dictionary<string, GameObject> ContractGOs = new Dictionary<string, GameObject>();
 
         private float timeSinceLastUpdate = Mathf.Infinity;
         private readonly float timeBetweenUpdates = 1f;
@@ -25,6 +28,7 @@ namespace STCommander
         void Start() {
             AgentInfoDisplay = HUD.transform.Find("AgentInfo").GetComponent<TMP_Text>();
             FleetTransform = (RectTransform) HUD.transform.Find("Fleet");
+            ContractsTransform = (RectTransform) HUD.transform.Find("Contracts");
         }
 
         // Update is called once per frame
@@ -38,6 +42,7 @@ namespace STCommander
 
             UpdateAgentInfo();
             UpdateFleetHUD();
+            UpdateContractHUD();
         }
 
         private void OnDestroy() {
@@ -63,6 +68,12 @@ namespace STCommander
                 UpdateShipInfo(shipSymbol);
                 await Task.Yield();
             }
+        }
+
+        private GameObject SpawnShip( string symbol ) {
+            GameObject go = Instantiate(ShipPrefab, FleetTransform);
+            go.name = symbol;
+            return go;
         }
 
         private async void UpdateShipInfo( string shipSymbol ) {
@@ -93,10 +104,25 @@ namespace STCommander
             trans.Find("Navigation").GetComponent<TMP_Text>().text = navString;
         }
 
-        private GameObject SpawnShip(string symbol) {
-            GameObject go = Instantiate(ShipPrefab, FleetTransform);
-            go.name = symbol;
+        private async void UpdateContractHUD() {
+            foreach(string ID in ContractManager.Contracts) {
+                if(!ContractGOs.ContainsKey(ID)) {
+                    ContractGOs.Add(ID, SpawnContract(ID));
+                }
+                UpdateContractInfo(ID);
+                await Task.Yield();
+            }
+        }
+        private GameObject SpawnContract( string ID ) {
+            GameObject go = Instantiate(ContractPrefab, ContractsTransform);
+            go.name = ID;
             return go;
+        }
+
+        private async void UpdateContractInfo(string ID ) {
+            Transform trans = ContractGOs[ID].transform;
+            Contract contract = await ContractManager.GetContract(ID);
+            trans.Find("Content").GetComponent<TMP_Text>().text = contract.ToString();
         }
     }
 }
