@@ -22,19 +22,14 @@ namespace STCommander
             OnDestroy();
         }
         private async void LoadShips() {
-            (bool success, List<Ship> shipList) = await ServerManager.CachedRequest<List<Ship>>("my/ships", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(!success)
-                return;
-
+            (ServerResult result, List<Ship> shipList) = await ServerManager.CachedRequest<List<Ship>>("my/ships", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
+            if(result.result != ServerResult.ResultType.SUCCESS) { return; }
             foreach(Ship ship in shipList) { Ships.Add(ship.symbol); }
         }
         public static async Task<Ship> GetShip( string symbol ) {
-            (bool success, Ship ship) = await ServerManager.CachedRequest<Ship>("my/ships/" + symbol, new System.TimeSpan(0, 0, 10), RequestMethod.GET, AsyncCancelToken);
-            if(success) {
+            (ServerResult result, Ship ship) = await ServerManager.CachedRequest<Ship>("my/ships/" + symbol, new System.TimeSpan(0, 0, 10), RequestMethod.GET, AsyncCancelToken);
+            if(result.result != ServerResult.ResultType.SUCCESS) { return null; }
             return ship;
-            } else {
-                return null;
-            }
         }
     }
 }

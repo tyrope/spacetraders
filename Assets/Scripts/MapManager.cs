@@ -88,16 +88,13 @@ namespace STCommander
 
             // Load the waypoints.
             Waypoint wp;
-            bool success;
+            ServerResult result;
             for(int i = 0; i < sys.waypoints.Count; i++) {
-                // Load from cache.
-                (success, wp) = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
-                
-                if(!success) { continue; } // Skip waypoints that error for some reason.
-
-                // Update the system in memory.
-                if(wp != sys.waypoints[i]) {
-                    sys.waypoints[i] = wp;
+                (result, wp) = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+                if(result.result != ServerResult.ResultType.SUCCESS) {
+                    Debug.LogError($"Failed to load waypoint{sys.waypoints[i].symbol}\n{result}");
+                    // Skip waypoints that error for some reason.
+                    continue;
                 }
                 // Update the system in memory.
                 if(wp != sys.waypoints[i]) { sys.waypoints[i] = wp; }
@@ -132,10 +129,13 @@ namespace STCommander
         }
         // Create the world map as we know it.
         async void CreateMap( int retries = 0 ) {
-            bool success;
-            (success, solarSystems) = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, asyncCancelToken);
-            if(!success) {
-                Debug.Log("Failed to load systems.json");
+            // Load the galaxy
+            ServerResult result;
+            (result, solarSystems) = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, asyncCancelToken);
+            if(asyncCancelToken.IsCancellationRequested)
+                return;
+            if(result.result != ServerResult.ResultType.SUCCESS) {
+                Debug.LogError($"Failed to load systems.json\n{result}");
                 if(retries < 5) {
                     await Task.Delay(1000);
                     CreateMap(retries + 1);
@@ -144,6 +144,20 @@ namespace STCommander
                     Debug.LogError("5 failed attempts to load systems.json, something is seriously wrong.");
                     return;
                 }
+            }
+
+            // Center on the Player HQ.
+            AgentInfo agent;
+            (result, agent) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
+            if(asyncCancelToken.IsCancellationRequested) { return; }
+            if(result.result == ServerResult.ResultType.SUCCESS) {
+                // Query the HQ waypoint for system name.
+                SolarSystem hq;
+                string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
+                (result, hq) = await ServerManager.CachedRequest<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+                if(asyncCancelToken.IsCancellationRequested) { return; }
+                if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
+                mapCenter = new Vector2(hq.x, hq.y);
             }
 
             // Create the game objects.

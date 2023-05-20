@@ -39,8 +39,8 @@ namespace STCommander
 
         public async void CheckAuthorization() {
             string authToken = inputField.text;
-            (bool success, AgentInfo agentInfo) = await ServerManager.Request<AgentInfo>("/my/agent", RequestMethod.GET, asyncCancelToken, null, authToken);
-            if(!success || agentInfo == null) {
+            (ServerResult result, AgentInfo agentInfo) = await ServerManager.Request<AgentInfo>("/my/agent", RequestMethod.GET, asyncCancelToken, null, authToken);
+            if(result.result != ServerResult.ResultType.SUCCESS || agentInfo == null) {
                 errorTime = 2f;
                 return;
             } else {
