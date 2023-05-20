@@ -47,6 +47,12 @@ namespace STCommander
 
             // No more systems.json.json!
             if(name.EndsWith(".json") == false) { name += ".json"; }
+
+            // Remove invalid characters.
+            foreach(char c in Path.GetInvalidFileNameChars()) {
+                name = name.Replace(c, '-');
+            }
+
             string filePath = Path.Combine(Application.persistentDataPath, string.Join(Path.DirectorySeparatorChar, pathSegments), name);
             CachedItem cache;
             if(File.Exists(filePath)) {
