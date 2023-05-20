@@ -2152,8 +2152,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f371f532342a5d14b8a532ba44676fc1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  camController: {fileID: 1101542739}
-  consoleController: {fileID: 1101542741}
   HintsWindow: {fileID: 402786660}
   ShipsWindow: {fileID: 407407179}
   ContractsWindow: {fileID: 894159937}

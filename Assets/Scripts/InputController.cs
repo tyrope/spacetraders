@@ -6,11 +6,19 @@ namespace STCommander
 {
     public class InputController : MonoBehaviour
     {
-        public CameraController camController;
-        public ConsoleController consoleController;
+        private CameraController camController;
+        private ConsoleController consoleController;
+        private MapManager mapManager;
+
         public GameObject HintsWindow;
         public GameObject ShipsWindow;
         public GameObject ContractsWindow;
+
+        private void Start() {
+            camController = gameObject.GetComponent<CameraController>();
+            consoleController = gameObject.GetComponent<ConsoleController>();
+            mapManager = gameObject.GetComponent<MapManager>();
+        }
 
         // Update is called once per frame
         void Update() {
