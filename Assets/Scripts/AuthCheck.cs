@@ -7,15 +7,13 @@ using UnityEngine.SceneManagement;
 namespace STCommander
 {
     public class AuthCheck : MonoBehaviour {
-        public class RegistrationResult {
-            public class Data {
-                public AgentInfo agent;
-                public Contract contract;
-                public Faction faction;
-                public Ship ship;
-                public string token;
-            }
-            public Data data;
+        public class RegistrationResult
+        {
+            public AgentInfo agent;
+            public Contract contract;
+            public Faction faction;
+            public Ship ship;
+            public string token;
         }
 
         public TMPro.TMP_InputField NameInputField;
@@ -84,7 +82,7 @@ namespace STCommander
                 return;
             }
             SaveWarning.SetActive(true);
-            TokenInputField.text = reg.data.token;
+            TokenInputField.text = reg.token;
         }
 
         public async void CheckAuthorization( bool useSavedToken = false ) {

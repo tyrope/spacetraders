@@ -52,7 +52,6 @@ namespace STCommander
         }
         public async static Task<(ServerResult, T)> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null ) {
             string uri = Server + endpoint;
-            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
 
             UnityWebRequest request;
             switch(method) {
@@ -60,6 +59,7 @@ namespace STCommander
                     request = UnityWebRequest.Get(new Uri(uri));
                     break;
                 case RequestMethod.POST:
+                    byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
                     request = new UnityWebRequest(uri, "POST") {
                         uploadHandler = new UploadHandlerRaw(payloadBytes)
                     };
@@ -118,7 +118,7 @@ namespace STCommander
                     try {
                         // Unwrap a potential ServerResponse.
                         ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
-                        Log(method, endpoint, LastCalls.Count, retstring, resp.meta.ToString(), payload);
+                        Log(method, endpoint, LastCalls.Count, retstring, resp.meta?.ToString(), payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
