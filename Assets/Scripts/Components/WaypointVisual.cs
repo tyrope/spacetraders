@@ -20,8 +20,8 @@ namespace STCommander
             gameObject.name = $"({waypoint.x},{waypoint.y}){waypoint.symbol.Split('-')[2]}";
             gameObject.GetComponentInChildren<TMP_Text>().text = waypoint.symbol.Split('-')[2];
             OrbitalAltitude = new Vector2(waypoint.x, waypoint.y).magnitude * solarSystem.GetSystemScale();
-            OrbitTime = Random.Range(0, OrbitalPeriod);
 
+            OrbitTime = System.DateTime.Now.Ticks % OrbitalPeriod;
             SetPosition();
         }
 
