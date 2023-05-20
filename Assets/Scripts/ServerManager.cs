@@ -37,7 +37,7 @@ namespace STCommander
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
             if(code == CacheHandler.ReturnCode.SUCCESS) {
                 // Success!
-                Debug.Log($"[Cache]{endpoint}\n{cacheData}");
+                Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
                 return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), JsonConvert.DeserializeObject<T>(cacheData));
             }
             // Or grab it from the API instead.
@@ -98,13 +98,13 @@ namespace STCommander
             string err;
             switch(request.result) {
                 case UnityWebRequest.Result.ProtocolError:
-                    Debug.LogError($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\nHTTPError: {request.error}\n{request.downloadHandler.text}");
+                    Log(method, endpoint, LastCalls.Count, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload);
                     err = request.error;
                     request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.HTTP_ERROR, err), default);
                 case UnityWebRequest.Result.ConnectionError:
                 case UnityWebRequest.Result.DataProcessingError:
-                    Debug.LogError($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\nError: {request.error}\n{request.downloadHandler.text}");
+                    Log(method, endpoint, LastCalls.Count, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload);
                     err = request.error;
                     request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, err), default);
@@ -114,15 +114,11 @@ namespace STCommander
                     try {
                         // Unwrap a potential ServerResponse.
                         ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
-                        if(resp.meta != null) {
-                            Debug.Log($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\nShowing {resp.meta}\n{retstring}");
-                        } else {
-                            Debug.Log($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\n{retstring}");
-                        }
+                        Log(method, endpoint, LastCalls.Count, retstring, resp.meta.ToString(), payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
-                        Debug.Log($"[API:{method}]{endpoint} => Rate limit: {LastCalls.Count}/10\n{retstring}");
+                        Log(method, endpoint, LastCalls.Count, retstring, payload:payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
                     }
                 default:
@@ -130,6 +126,19 @@ namespace STCommander
                     request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.UNKNOWN_ERROR, "Unreachable code."), default);
             }
+        }
+
+        private static void Log( RequestMethod method, string endpoint, int ratelimit, string response, string meta = null, string payload = null ) {
+            string logString = $"[API:{method}]{endpoint} - Rate Limit:{ratelimit}/10\n";
+            if(payload != null) {
+                logString += $"=> {payload}\n";
+            }
+            if(meta != null) {
+                logString += $"<= Showing {meta}\n{response}";
+            } else {
+                logString += $"<= {response}";
+            }
+            Debug.Log(logString);
         }
     }
 }
