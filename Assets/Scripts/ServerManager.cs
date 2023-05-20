@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -51,6 +52,7 @@ namespace STCommander
         }
         public async static Task<(ServerResult, T)> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null ) {
             string uri = Server + endpoint;
+            byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
 
             UnityWebRequest request;
             switch(method) {
@@ -58,7 +60,9 @@ namespace STCommander
                     request = UnityWebRequest.Get(new Uri(uri));
                     break;
                 case RequestMethod.POST:
-                    request = UnityWebRequest.Post(new Uri(uri), payload);
+                    request = new UnityWebRequest(uri, "POST") {
+                        uploadHandler = new UploadHandlerRaw(payloadBytes)
+                    };
                     break;
                 default:
                     throw new NotImplementedException("The method you've requested is not yet available.");
