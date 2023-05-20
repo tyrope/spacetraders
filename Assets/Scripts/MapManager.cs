@@ -9,12 +9,13 @@ namespace STCommander
     {
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
+        public TMPro.TMP_Text MapLegend;
 
         private Transform SystemContainer;
         private List<SolarSystem> solarSystems;
         private SolarSystem selectedSystem;
         private Vector2 mapCenter = Vector2.zero;
-        private float zoom = 50;
+        private float zoom = 500;
         private int displayedSystems;
 
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
@@ -46,7 +47,7 @@ namespace STCommander
                 return;
             }
             /// Scroll ///
-            float scrollSpeed = 5f;
+            float scrollSpeed = 10f;
             Vector2 panDir = Vector2.zero;
             if(Input.GetKey(KeyCode.Keypad1)) { panDir += Vector2.down + Vector2.left; }
             if(Input.GetKey(KeyCode.Keypad2)) { panDir += Vector2.down; }
@@ -58,7 +59,7 @@ namespace STCommander
             if(Input.GetKey(KeyCode.Keypad9)) { panDir += Vector2.up + Vector2.right; }
             mapCenter += panDir.normalized * Time.deltaTime * scrollSpeed;
             /// ZOOOOOOOOOMIES ///
-            float zoomSpeed = 10f;
+            float zoomSpeed = 100f;
             int zoomDir = 0;
             if(Input.GetKey(KeyCode.KeypadMinus)) { zoomDir++; }
             if(Input.GetKey(KeyCode.KeypadPlus)) { zoomDir--; }
@@ -105,6 +106,7 @@ namespace STCommander
         }
         private void RefreshMap() {
             (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
+            MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
             foreach(SolarSystem sys in solarSystems) {
                 // Go through each solar system to check the bounds..
                 if(sys.x < minBounds.x || sys.x > maxBounds.x || sys.y < minBounds.y || sys.y > maxBounds.y) {
@@ -159,6 +161,7 @@ namespace STCommander
                 if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
                 mapCenter = new Vector2(hq.x, hq.y);
             }
+            MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
 
             // Create the game objects.
             GameObject go;
