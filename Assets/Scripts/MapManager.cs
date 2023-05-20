@@ -81,6 +81,7 @@ namespace STCommander
                 }
             }
             if(sys == null) { return; }
+            selectedSystem = sys;
 
             // Recenter the map.
             mapCenter = new Vector2(selectedSystem.x, selectedSystem.y);
@@ -92,7 +93,7 @@ namespace STCommander
             for(int i = 0; i < sys.waypoints.Count; i++) {
                 (result, wp) = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
                 if(result.result != ServerResult.ResultType.SUCCESS) {
-                    Debug.LogError($"Failed to load waypoint{sys.waypoints[i].symbol}\n{result}");
+                    Debug.LogError($"Failed to load waypoint {sys.waypoints[i].symbol}\n{result}");
                     // Skip waypoints that error for some reason.
                     continue;
                 }
@@ -101,7 +102,6 @@ namespace STCommander
                 // Send it.
                 SpawnWaypoint(wp, sys, solarSystemObjects[sys]);
             }
-            selectedSystem = sys;
         }
         private void RefreshMap() {
             (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
