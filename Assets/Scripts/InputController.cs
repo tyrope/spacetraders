@@ -31,8 +31,10 @@ namespace STCommander
             if(Input.GetKeyDown(KeyCode.F3))
                 ContractsWindow.SetActive(ContractsWindow.activeSelf == false);
 
-            if(consoleController.ParseInputs())
+            if(consoleController.ParseInputs()) {
                 camController.ParseInputs();
+                mapManager.ParseInputs();
+            }
         }
     }
 }
