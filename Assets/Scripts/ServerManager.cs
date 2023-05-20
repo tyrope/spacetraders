@@ -55,13 +55,13 @@ namespace STCommander
             UnityWebRequest request;
             switch(method) {
                 case RequestMethod.GET:
-                    request = UnityWebRequest.Get(new System.Uri(uri));
+                    request = UnityWebRequest.Get(new Uri(uri));
                     break;
                 case RequestMethod.POST:
-                    request = UnityWebRequest.Post(new System.Uri(uri), payload);
+                    request = UnityWebRequest.Post(new Uri(uri), payload);
                     break;
                 default:
-                    throw new System.NotImplementedException("The method you've requested is not yet available.");
+                    throw new NotImplementedException("The method you've requested is not yet available.");
             }
 
             request.downloadHandler = new DownloadHandlerBuffer();
