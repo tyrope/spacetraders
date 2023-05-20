@@ -41,11 +41,11 @@ namespace STCommander
         public Terms terms;
         public bool accepted;
         public bool fulfilled;
-        public DateTime expiration;
+        public DateTime deadlineToAccept;
 
         public ContractStatus GetStatus() {
             if(accepted == false) {
-                if(DateTime.UtcNow >= expiration) {
+                if(DateTime.UtcNow >= deadlineToAccept) {
                     return ContractStatus.EXPIRED;
                 } else {
                     return ContractStatus.OFFERED;
