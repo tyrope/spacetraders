@@ -55,7 +55,7 @@ namespace STCommander
 
         private async void UpdateAgentInfo() {
             (bool success, AgentInfo info) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0,1,0), RequestMethod.GET, asyncCancelToken);
-            if(success) {
+            if(asyncCancelToken.IsCancellationRequested == false && success) {
                 AgentInfoDisplay.text = $"Admiral {info.symbol} - Account balance: {info.credits:n0}Cr";
             }
         }
@@ -67,6 +67,7 @@ namespace STCommander
                 }
                 UpdateShipInfo(shipSymbol);
                 await Task.Yield();
+                if(asyncCancelToken.IsCancellationRequested) { return; }
             }
         }
 
@@ -79,6 +80,7 @@ namespace STCommander
         private async void UpdateShipInfo( string shipSymbol ) {
             Transform trans = ShipGOs[shipSymbol].transform;
             Ship ship = await ShipManager.GetShip(shipSymbol);
+            if(asyncCancelToken.IsCancellationRequested) { return; }
             trans.Find("Registration").GetComponent<TMP_Text>().text = ship.registration.name;
             trans.Find("Role").GetComponent<TMP_Text>().text = ship.registration.role.ToString();
             trans.Find("Cargo").GetComponent<TMP_Text>().text = $"Cargo: {ship.cargo.units / (float) ship.cargo.capacity * 100f:n2}%\n{ship.cargo.units}/{ship.cargo.capacity}";
@@ -111,6 +113,7 @@ namespace STCommander
                 }
                 UpdateContractInfo(ID);
                 await Task.Yield();
+                if(asyncCancelToken.IsCancellationRequested) { return; }
             }
         }
         private GameObject SpawnContract( string ID ) {
@@ -122,6 +125,7 @@ namespace STCommander
         private async void UpdateContractInfo(string ID ) {
             Transform trans = ContractGOs[ID].transform;
             Contract contract = await ContractManager.GetContract(ID);
+            if(asyncCancelToken.IsCancellationRequested) { return; }
             trans.Find("Content").GetComponent<TMP_Text>().text = contract.ToString();
         }
     }
