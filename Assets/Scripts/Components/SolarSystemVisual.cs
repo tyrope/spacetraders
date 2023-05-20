@@ -10,7 +10,7 @@ namespace STCommander
         public GameObject[] models;
 
         // Start is called before the first frame update
-        void Start() {
+        private void Start() {
             Instantiate(models[(int) system.type], transform.Find("Visuals"));
             gameObject.name = $"({system.x},{system.y}){system.symbol}";
             gameObject.GetComponentInChildren<TMP_Text>().text = system.symbol;

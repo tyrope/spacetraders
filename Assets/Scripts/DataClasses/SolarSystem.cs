@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace STCommander
 {
@@ -14,6 +15,14 @@ namespace STCommander
         public List<Faction> factions;
         public override string ToString() {
             return $"System[{symbol}] @ {x}, {y}. Type: {type}. {waypoints.Count} waypoints.";
+        }
+        public float GetSystemScale() {
+            float maxMagnitude = 0f;
+            foreach(Waypoint wp in waypoints) {
+                float mag = new Vector2(wp.x, wp.y).magnitude;
+                if(mag > maxMagnitude) { maxMagnitude = mag; }
+            }
+            return 2.0f / maxMagnitude;
         }
     }
 }
