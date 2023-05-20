@@ -1,16 +1,14 @@
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace STCommander
 {
-    public class AuthCheck : MonoBehaviour
-    {
-        public class RegistrationResult
-        {
-            public class Data
-            {
+    public class AuthCheck : MonoBehaviour {
+        public class RegistrationResult {
+            public class Data {
                 public AgentInfo agent;
                 public Contract contract;
                 public Faction faction;
@@ -19,24 +17,6 @@ namespace STCommander
             }
             public Data data;
         }
-        public class RegistrationRequest
-        {
-            public string symbol;
-            public string faction;
-            public string email;
-
-            public RegistrationRequest( string name, string factionID, string emailAddress ) {
-                symbol = name;
-                faction = factionID;
-                if(emailAddress.Length > 0) {
-                    email = emailAddress;
-                }
-
-            }
-
-            public override string ToString() => JsonConvert.SerializeObject(this);
-        }
-
 
         public TMPro.TMP_InputField NameInputField;
         public TMPro.TMP_Dropdown FactionDropdown;
@@ -85,8 +65,19 @@ namespace STCommander
         }
 
         public async void CreateAgent() {
-            RegistrationRequest req = new RegistrationRequest(NameInputField.text, FactionDropdown.options[FactionDropdown.value].text, EmailInputField.text);
-            (ServerResult result, RegistrationResult reg) = await ServerManager.Request<RegistrationResult>("/register", RequestMethod.POST, AsyncCancelToken, req.ToString());
+            string req;
+            string faction = FactionDropdown.options[FactionDropdown.value].text.Trim();
+            string name = NameInputField.text.Trim();
+            string email = EmailInputField.text.Trim();
+
+            if(email.Length > 0) {
+                req = $"{{\"faction\":\"{faction}\",\"symbol\":\"{name}\",\"email\":\"{email}\"}}";
+            } else {
+                req = $"{{\"faction\":\"{faction}\",\"symbol\":\"{name}\"}}";
+            }
+            Debug.Log($"Creating agent {name} in faction {faction}");
+
+            (ServerResult result, RegistrationResult reg) = await ServerManager.Request<RegistrationResult>("register", RequestMethod.POST, AsyncCancelToken, payload:req);
             if(result.result != ServerResult.ResultType.SUCCESS) {
                 Debug.LogError($"Error creating agent:\n{result.details}");
                 registerErrorTime = 2f;
@@ -96,9 +87,9 @@ namespace STCommander
             TokenInputField.text = reg.data.token;
         }
 
-        public async void CheckAuthorization( bool useSavedToken = false) {
+        public async void CheckAuthorization( bool useSavedToken = false ) {
             string authToken = useSavedToken ? PlayerPrefs.GetString("AuthToken") : TokenInputField.text;
-            (ServerResult result, AgentInfo agentInfo) = await ServerManager.Request<AgentInfo>("/my/agent", RequestMethod.GET, AsyncCancelToken, null, authToken);
+            (ServerResult result, AgentInfo agentInfo) = await ServerManager.Request<AgentInfo>("my/agent", RequestMethod.GET, AsyncCancelToken, null, authToken);
             if(result.result != ServerResult.ResultType.SUCCESS || agentInfo == null) {
                 Debug.LogError($"Error logging in:\n{result.details}");
                 loginErrorTime = 2f;
