@@ -66,11 +66,11 @@ namespace STCommander
 
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
-            if(authToken == null) {
-                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("AuthToken"));
-            } else {
+            if(authToken != null) {
                 // Override for AuthCheck to use.
                 request.SetRequestHeader("Authorization", "Bearer " + authToken);
+            }else if(PlayerPrefs.HasKey("AuthToken")) { 
+                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("AuthToken"));
             }
 
             // Rate limiting.
