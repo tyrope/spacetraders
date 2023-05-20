@@ -43,16 +43,17 @@ namespace STCommander
         public DateTime expiration;
 
         public ContractStatus GetStatus() {
-            if(DateTime.Compare(DateTime.Now, expiration) > 0)
-                return ContractStatus.EXPIRED;
-
-            if(accepted == false)
-                return ContractStatus.OFFERED;
-
+            if(accepted == false) {
+                if(DateTime.UtcNow >= expiration) {
+                    return ContractStatus.EXPIRED;
+                } else {
+                    return ContractStatus.OFFERED;
+                }
+            }
             if(fulfilled)
                 return ContractStatus.FULFILLED;
 
-            if(DateTime.Compare(DateTime.Now, terms.deadline) > 0)
+            if(DateTime.UtcNow > terms.deadline)
                 return ContractStatus.LATE;
 
             return ContractStatus.ACCEPTED;
