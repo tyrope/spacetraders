@@ -11,7 +11,6 @@ namespace STCommander
     public class HudManager : MonoBehaviour
     {
         public GameObject HUD;
-        public ShipManager shipManager;
         public GameObject ShipPrefab;
 
         private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
@@ -57,7 +56,7 @@ namespace STCommander
         }
 
         private async void UpdateFleetHUD() {
-            foreach(string shipSymbol in shipManager.Ships){
+            foreach(string shipSymbol in ShipManager.Ships){
                 if(!ShipGOs.ContainsKey(shipSymbol)) {
                     ShipGOs.Add(shipSymbol, SpawnShip(shipSymbol));
                 }
@@ -68,7 +67,7 @@ namespace STCommander
 
         private async void UpdateShipInfo( string shipSymbol ) {
             Transform trans = ShipGOs[shipSymbol].transform;
-            Ship ship = await shipManager.GetShip(shipSymbol);
+            Ship ship = await ShipManager.GetShip(shipSymbol);
             trans.Find("Registration").GetComponent<TMP_Text>().text = ship.registration.name;
             trans.Find("Role").GetComponent<TMP_Text>().text = ship.registration.role.ToString();
             trans.Find("Cargo").GetComponent<TMP_Text>().text = $"Cargo: {ship.cargo.units / (float) ship.cargo.capacity * 100f:n2}%\n{ship.cargo.units}/{ship.cargo.capacity}";

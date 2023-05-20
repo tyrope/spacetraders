@@ -6,35 +6,34 @@ using UnityEngine;
 namespace STCommander {
     public class ShipManager : MonoBehaviour
     {
-        public List<string> Ships;
-        private CancellationTokenSource asyncCancelToken;
-        
+        public static List<string> Ships;
+        private static readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+
         // Start is called before the first frame update
         void Start() {
-            asyncCancelToken = new CancellationTokenSource();
             LoadShips();
         }
 
-        private void OnDestroy() {
-            asyncCancelToken?.Cancel();
+        void OnDestroy() {
+            AsyncCancelToken?.Cancel();
         }
 
-        private void OnApplicationQuit() {
+        void OnApplicationQuit() {
             OnDestroy();
         }
 
         private async void LoadShips() {
-            (bool success, List<Ship> shipList) = await ServerManager.CachedRequest<List<Ship>>("my/ships", new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
-            if(!success) {
+            (bool success, List<Ship> shipList) = await ServerManager.CachedRequest<List<Ship>>("my/ships", new System.TimeSpan(0, 0, 10), RequestMethod.GET, AsyncCancelToken);
+            if(!success)
                 return;
-            }
+
             foreach(Ship ship in shipList) {
                 Ships.Add(ship.symbol);
             }
         }
 
-        public async Task<Ship> GetShip(string symbol) {
-            (bool success, Ship ship) = await ServerManager.CachedRequest<Ship>("my/ships/" + symbol, new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
+        public static async Task<Ship> GetShip(string symbol) {
+            (bool success, Ship ship) = await ServerManager.CachedRequest<Ship>("my/ships/" + symbol, new System.TimeSpan(0, 0, 1), RequestMethod.GET, AsyncCancelToken);
             if(success) {
                 return ship;
             } else {
