@@ -8,7 +8,6 @@ using UnityEngine.Networking;
 
 namespace STCommander
 {
-
     public enum RequestMethod { GET, POST }
     public class ServerManager
     {
@@ -18,14 +17,13 @@ namespace STCommander
             public Meta meta;
         }
 
-        private readonly static string Server = "https://api.spacetraders.io/v2/";
-
+        private static readonly string Server = "https://api.spacetraders.io/v2/";
         private static readonly Queue<DateTime> LastCalls = new Queue<DateTime>();
 
         public async static Task<(bool, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
-            if(code == CacheHandler.ReturnCode.SUCCESS){
+            if(code == CacheHandler.ReturnCode.SUCCESS) {
                 // Success!
                 Debug.Log($"[Cache]{endpoint}\n{cacheData}");
                 return (true, JsonConvert.DeserializeObject<T>(cacheData));
@@ -38,9 +36,7 @@ namespace STCommander
                 // Save it to the Cache. (This might error. Oh well.)
                 CacheHandler.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
             }
-
-            // Done!
-            return (success, result);
+            return (res, result); // Done!
         }
 
         public async static Task<(bool, T)> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null) {
@@ -79,20 +75,15 @@ namespace STCommander
                 }
 
                 // Check if we're allowed to break out of the buffer yet.
-                if(LastCalls.Count < 10) {
-                    break;
-                }
+                if(LastCalls.Count < 10) { break; }
 
                 // Wait a frame.
                 await Task.Yield();
             }
-
             request.SendWebRequest();
             LastCalls.Enqueue(DateTime.Now);
 
-            while(request.result == UnityWebRequest.Result.InProgress) {
-                await Task.Yield();
-            }
+            while(request.result == UnityWebRequest.Result.InProgress) { await Task.Yield(); }
 
             switch(request.result) {
                 case UnityWebRequest.Result.ProtocolError:

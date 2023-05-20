@@ -42,13 +42,14 @@
             public int morale;
             public int wages;
         }
-        public class Frame {
-            public enum FrameType {
+        public class Frame
+        {
+            public enum FrameType
+            {
                 FRAME_PROBE, FRAME_DRONE, FRAME_INTERCEPTOR, FRAME_RACER, FRAME_FIGHTER,
                 FRAME_FRIGATE, FRAME_SHUTTLE, FRAME_EXPLORER, FRAME_MINER, FRAME_LIGHT_FREIGHTER,
-                FRAME_HEAVY_FREIGHTER, FRAME_TRANSPORT, FRAME_DESTROYER, FRAME_CRUISER, FRAME_CARRIER };
-
-
+                FRAME_HEAVY_FREIGHTER, FRAME_TRANSPORT, FRAME_DESTROYER, FRAME_CRUISER, FRAME_CARRIER
+            };
             public FrameType symbol;
             public string name;
             public string description;
@@ -58,7 +59,8 @@
             public int fuelCapacity;
             public Requirements requirements;
         }
-        public class Reactor {
+        public class Reactor
+        {
             public enum ReactorType { REACTOR_SOLAR_I, REACTOR_FUSION_I, REACTOR_FISSION_I, REACTOR_CHEMICAL_I, REACTOR_ANTIMATTER_I }
             public ReactorType symbol;
             public string name;
@@ -68,7 +70,8 @@
             public Requirements requirements;
 
         }
-        public class Engine {
+        public class Engine
+        {
             public enum EngineType { ENGINE_IMPULSE_DRIVE_I, ENGINE_ION_DRIVE_I, ENGINE_ION_DRIVE_II, ENGINE_HYPER_DRIVE_I }
             public EngineType symbol;
             public string name;
@@ -77,12 +80,15 @@
             public int speed;
             public Requirements requirements;
         }
-        public class Module {
-            public enum ModuleType {
+        public class Module
+        {
+            public enum ModuleType
+            {
                 MODULE_MINERAL_PROCESSOR_I, MODULE_CARGO_HOLD_I, MODULE_CREW_QUARTERS_I, MODULE_ENVOY_QUARTERS_I, MODULE_PASSENGER_CABIN_I,
                 MODULE_MICRO_REFINERY_I, MODULE_ORE_REFINERY_I, MODULE_FUEL_REFINERY_I, MODULE_SCIENCE_LAB_I, MODULE_JUMP_DRIVE_I,
                 MODULE_JUMP_DRIVE_II, MODULE_JUMP_DRIVE_III, MODULE_WARP_DRIVE_I, MODULE_WARP_DRIVE_II, MODULE_WARP_DRIVE_III,
-                MODULE_SHIELD_GENERATOR_I, MODULE_SHIELD_GENERATOR_II }
+                MODULE_SHIELD_GENERATOR_I, MODULE_SHIELD_GENERATOR_II
+            }
             public int capacity;
             public int range;
             public string name;
@@ -134,7 +140,6 @@
             public int capacity;
             public Consumed consumed;
         }
-
         public string symbol;
         public Registration registration;
         public Navigation nav;

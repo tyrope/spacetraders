@@ -2,7 +2,8 @@
 
 namespace STCommander
 {
-    public class Contract {
+    public class Contract
+    {
         public enum ContractStatus { OFFERED, ACCEPTED, LATE, FULFILLED, EXPIRED }
         public class Terms
         {
@@ -50,11 +51,9 @@ namespace STCommander
                     return ContractStatus.OFFERED;
                 }
             }
-            if(fulfilled)
-                return ContractStatus.FULFILLED;
+            if(fulfilled) { return ContractStatus.FULFILLED; }
 
-            if(DateTime.UtcNow > terms.deadline)
-                return ContractStatus.LATE;
+            if(DateTime.UtcNow > terms.deadline) { return ContractStatus.LATE; }
 
             return ContractStatus.ACCEPTED;
         }

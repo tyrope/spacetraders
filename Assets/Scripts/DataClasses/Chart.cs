@@ -2,8 +2,8 @@
 {
     public class Chart
     {
-        string waypointSymbol;
-        string submittedBy;
-        string submittedOn;
+        public string waypointSymbol;
+        public string submittedBy;
+        public string submittedOn;
     }
 }

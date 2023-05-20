@@ -6,10 +6,11 @@ using UnityEngine;
 
 namespace STCommander
 {
-    public class CacheHandler {
+    public class CacheHandler
+    {
         public enum ReturnCode { UNKNOWN_ERROR = -1, SUCCESS, NOT_FOUND, EXPIRED }
-
-        public class CachedItem {
+        public class CachedItem
+        {
             public string contents;
             public long createdAt;
             public TimeSpan lifespan;
@@ -41,13 +42,11 @@ namespace STCommander
             foreach(string segment in name.Split('/')) {
                 pathSegments.Add(segment);
             }
-
             name = pathSegments[^1];
-            pathSegments.RemoveAt(pathSegments.Count-1);
+            pathSegments.RemoveAt(pathSegments.Count - 1);
 
             // No more systems.json.json!
-            if(name.EndsWith(".json") == false) name += ".json";
-
+            if(name.EndsWith(".json") == false) { name += ".json"; }
             string filePath = Path.Combine(Application.persistentDataPath, string.Join(Path.DirectorySeparatorChar, pathSegments), name);
             CachedItem cache;
             if(File.Exists(filePath)) {
@@ -55,22 +54,18 @@ namespace STCommander
                 cache.Update(payload, lifespan);
             } else {
                 cache = new CachedItem(payload, lifespan);
-
                 // Make sure the directory exists...
                 Directory.CreateDirectory(Path.Combine(Application.persistentDataPath, string.Join(Path.DirectorySeparatorChar, pathSegments)));
             }
-
             File.WriteAllText(filePath, JsonConvert.SerializeObject(cache));
             return ReturnCode.SUCCESS;
         }
 
         public static (ReturnCode, string) Load( string name ) {
             // No more systems.json.json!
-            if(name.EndsWith(".json") == false) name += ".json";
+            if(name.EndsWith(".json") == false) { name += ".json"; }
             string fileName = Path.Combine(Application.persistentDataPath, name);
-            if(File.Exists(fileName) == false) {
-                return (ReturnCode.NOT_FOUND, null);
-            }
+            if(File.Exists(fileName) == false) { return (ReturnCode.NOT_FOUND, null); }
             CachedItem cache = JsonConvert.DeserializeObject<CachedItem>(File.ReadAllText(fileName));
             return cache.GetContents();
         }

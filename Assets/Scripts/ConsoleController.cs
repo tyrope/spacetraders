@@ -17,11 +17,8 @@ namespace STCommander
         /// </summary>
         /// <returns>true if future controllers are allowed to parse inputs as well.</returns>
         public bool ParseInputs() {
-            if(Input.GetKeyDown(KeyCode.Return)) {
-                console.SetActive(console.activeSelf == false);
-            }
+            if(Input.GetKeyDown(KeyCode.Return)) { console.SetActive(console.activeSelf == false); }
             Cursor.lockState = console.activeSelf ? CursorLockMode.None : CursorLockMode.Locked;
-
             return console.activeSelf == false;
         }
 
@@ -39,6 +36,6 @@ namespace STCommander
                     break;
             }
         }
-        #pragma warning restore CS4014
+#pragma warning restore CS4014
     }
 }

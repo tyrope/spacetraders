@@ -2,7 +2,8 @@ using UnityEngine;
 
 namespace STCommander
 {
-    public class CameraController : MonoBehaviour {
+    public class CameraController : MonoBehaviour
+    {
 
         public float mouseSensitivity = 4f;
         public float walkSpeed = 5f;
@@ -24,18 +25,10 @@ namespace STCommander
             float moveSpeed = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? runSpeed : walkSpeed;
             Vector3 moveDirection = Vector3.zero;
 
-            if(Input.GetKey(KeyCode.W)) {
-                moveDirection += Vector3.forward;
-            }
-            if(Input.GetKey(KeyCode.A)) {
-                moveDirection += Vector3.left;
-            }
-            if(Input.GetKey(KeyCode.S)) {
-                moveDirection += Vector3.back;
-            }
-            if(Input.GetKey(KeyCode.D)) {
-                moveDirection += Vector3.right;
-            }
+            if(Input.GetKey(KeyCode.W)) { moveDirection += Vector3.forward; }
+            if(Input.GetKey(KeyCode.A)) { moveDirection += Vector3.left; }
+            if(Input.GetKey(KeyCode.S)) { moveDirection += Vector3.back; }
+            if(Input.GetKey(KeyCode.D)) { moveDirection += Vector3.right; }
             jigTransform.Translate(moveDirection * moveSpeed * Time.deltaTime);
         }
 

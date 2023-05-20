@@ -12,7 +12,7 @@ namespace STCommander
         // Start is called before the first frame update
         void Start() {
             Instantiate(models[(int) system.type], transform.Find("Visuals"));
-            gameObject.name = $"[{system.x},{system.y}]{system.symbol}";
+            gameObject.name = $"({system.x},{system.y}){system.symbol}";
             gameObject.GetComponentInChildren<TMP_Text>().text = system.symbol;
             SetPosition();
         }
@@ -23,8 +23,9 @@ namespace STCommander
         }
 
         public void SetPosition() {
-            float xPos = system.x + MapManager.GetCenter().x;
-            float yPos = system.y + MapManager.GetCenter().y;
+            Vector2 mapCenter = MapManager.GetCenter() * -1;
+            float xPos = system.x + mapCenter.x;
+            float yPos = system.y + mapCenter.y;
             gameObject.transform.position = new Vector3(xPos, 0, yPos) / MapManager.GetZoom() * 2f;
         }
     }

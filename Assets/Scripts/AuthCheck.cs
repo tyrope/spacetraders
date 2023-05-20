@@ -3,7 +3,8 @@ using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace STCommander {
+namespace STCommander
+{
     public class AuthCheck : MonoBehaviour
     {
         public TMPro.TMP_Text ButtonText;
@@ -19,7 +20,7 @@ namespace STCommander {
             if(RevokeAuthorization) {
                 PlayerPrefs.DeleteKey("AuthToken");
                 PlayerPrefs.Save();
-            }else if(PlayerPrefs.HasKey("AuthToken")) {
+            } else if(PlayerPrefs.HasKey("AuthToken")) {
                 SceneManager.LoadScene(1); // Main Scene.
                 return;
             }

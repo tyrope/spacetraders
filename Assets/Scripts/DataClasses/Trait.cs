@@ -2,7 +2,8 @@ namespace STCommander
 {
     public class Trait
     {
-        public enum TraitType {
+        public enum TraitType
+        {
             UNCHARTED, MARKETPLACE, SHIPYARD, OUTPOST, SCATTERED_SETTLEMENTS,
             SPRAWLING_CITIES, MEGA_STRUCTURES, OVERCROWDED, HIGH_TECH, CORRUPT,
             BUREAUCRATIC, TRADING_HUB, INDUSTRIAL, BLACK_MARKET, RESEARCH_FACILITY,
@@ -14,7 +15,8 @@ namespace STCommander
             DIVERSE_LIFE, SCARCE_LIFE, FOSSILS, WEAK_GRAVITY, STRONG_GRAVITY,
             CRUSHING_GRAVITY, TOXIC_ATMOSPHERE, CORROSIVE_ATMOSPHERE, BREATHABLE_ATMOSPHERE, JOVIAN,
             ROCKY, VOLCANIC, FROZEN, SWAMP, BARREN,
-            TEMPERATE, JUNGLE, OCEAN, STRIPPED }
+            TEMPERATE, JUNGLE, OCEAN, STRIPPED
+        }
         public TraitType symbol;
         public string name;
         public string description;

@@ -7,23 +7,22 @@ using UnityEngine;
 
 namespace STCommander
 {
-
     public class HudManager : MonoBehaviour
     {
         public GameObject HUD;
         public GameObject ShipPrefab;
         public GameObject ContractPrefab;
 
-        private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
-
         private TMP_Text AgentInfoDisplay;
         private RectTransform FleetTransform;
         private RectTransform ContractsTransform;
+        private float timeSinceLastUpdate = Mathf.Infinity;
+
         private readonly Dictionary<string, GameObject> ShipGOs = new Dictionary<string, GameObject>();
         private readonly Dictionary<string, GameObject> ContractGOs = new Dictionary<string, GameObject>();
-
-        private float timeSinceLastUpdate = Mathf.Infinity;
+        private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
         private readonly float timeBetweenUpdates = 1f;
+
         // Start is called before the first frame update
         void Start() {
             AgentInfoDisplay = HUD.transform.Find("AgentInfo").GetComponent<TMP_Text>();

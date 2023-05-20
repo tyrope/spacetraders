@@ -3,12 +3,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace STCommander {
+namespace STCommander
+{
     public class ContractManager : MonoBehaviour
     {
         public static List<string> Contracts = new List<string>();
-        private static CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
-        
+        private static readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+
         // Start is called before the first frame update
         void Start() {
             LoadContracts();
@@ -32,10 +33,10 @@ namespace STCommander {
             }
         }
 
-        public static async Task<Contract> GetContract(string ID) {
+        public static async Task<Contract> GetContract( string ID ) {
             (bool success, Contract contract) = await ServerManager.CachedRequest<Contract>("my/contracts/" + ID, new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
             if(success) {
-                return contract;
+            return contract;
             } else {
                 return null;
             }

@@ -1,6 +1,7 @@
 ﻿namespace STCommander
 {
-    public class AgentInfo {
+    public class AgentInfo
+    {
         public string accountId;
         public string symbol;
         public string headquarters;
