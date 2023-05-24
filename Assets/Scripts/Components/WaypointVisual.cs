@@ -32,7 +32,7 @@ namespace STCommander
                 OrbitalAltitude = new Vector2(waypoint.x, waypoint.y).magnitude;
                 OrbitTime = DateTime.Now.Ticks % OrbitalPeriod;
             } else {
-                OrbitalAltitude = 2f;
+                OrbitalAltitude = 5f;
                 // TODO Fix all satellites overlapping despite being offset by Index.
                 OrbitTime = DateTime.Now.Ticks + OrbitalPeriod * (ourSatelliteIndex / (float) totalSatellites) % OrbitalPeriod;
             }
