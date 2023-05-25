@@ -33,12 +33,15 @@ namespace STCommander
         private static readonly string Server = "https://api.spacetraders.io/v2/";
         private static readonly Queue<DateTime> LastCalls = new Queue<DateTime>();
 
+        private static readonly bool sendResultsToLog = false; //DEBUG API log switch lives here.
+
         public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
             if(code == CacheHandler.ReturnCode.SUCCESS) {
                 // Success!
-                Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
+                if(sendResultsToLog)
+                    Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
                 return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), JsonConvert.DeserializeObject<T>(cacheData));
             }
             // Or grab it from the API instead.
@@ -73,7 +76,7 @@ namespace STCommander
             if(authToken != null) {
                 // Override for AuthCheck to use.
                 request.SetRequestHeader("Authorization", "Bearer " + authToken);
-            }else if(PlayerPrefs.HasKey("AuthToken")) { 
+            } else if(PlayerPrefs.HasKey("AuthToken")) {
                 request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("AuthToken"));
             }
 
@@ -122,7 +125,7 @@ namespace STCommander
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
-                        Log(method, endpoint, LastCalls.Count, retstring, payload:payload);
+                        Log(method, endpoint, LastCalls.Count, retstring, payload: payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
                     }
                 default:
@@ -133,6 +136,7 @@ namespace STCommander
         }
 
         private static void Log( RequestMethod method, string endpoint, int ratelimit, string response, string meta = null, string payload = null ) {
+            if(sendResultsToLog == false) { return; }
             string logString = $"[API:{method}]{endpoint} - Rate Limit:{ratelimit}/10\n";
             if(payload != null) {
                 logString += $"=> {payload}\n";
