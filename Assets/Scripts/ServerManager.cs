@@ -81,6 +81,7 @@ namespace STCommander
             }
 
             // Rate limiting.
+            // TODO rework now that I have more accurate info on how the limiter works: https://github.com/SpaceTradersAPI/api-docs/wiki/Ratelimit
             while(LastCalls.Count >= 10) {
                 // If we're caught in this block, we've hit the rate limiter.
                 while(LastCalls.Count > 0 && DateTime.Compare(

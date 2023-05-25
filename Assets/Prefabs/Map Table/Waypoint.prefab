@@ -145,6 +145,7 @@ GameObject:
   m_Component:
   - component: {fileID: 749999442325970829}
   - component: {fileID: 749999442325970828}
+  - component: {fileID: -5380937789756354087}
   m_Layer: 0
   m_Name: Waypoint
   m_TagString: Untagged
@@ -193,6 +194,19 @@ MonoBehaviour:
   - {fileID: 7429386260137076711, guid: d1122d3c798448f488bddb9f57e60abf, type: 3}
   - {fileID: 6250341975563328927, guid: bb2383a6ae3495f45afb58a6ca3b4d85, type: 3}
   - {fileID: 2741474920328674442, guid: 6fd90f6c475e82b4ba712457e9314028, type: 3}
+--- !u!135 &-5380937789756354087
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 749999442325970826}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.1
+  m_Center: {x: 0, y: 1.1, z: 0}
 --- !u!1 &749999442456425811
 GameObject:
   m_ObjectHideFlags: 0

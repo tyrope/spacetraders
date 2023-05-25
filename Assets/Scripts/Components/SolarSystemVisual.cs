@@ -23,6 +23,10 @@ namespace STCommander
         }
 
         public void SetPosition() {
+            if(MapManager.SelectedSystem == system) {
+                gameObject.transform.position = new Vector3(0, 0.5f, 0);
+                return;
+            }
             Vector2 mapCenter = MapManager.GetCenter() * -1;
             float xPos = system.x + mapCenter.x;
             float yPos = system.y + mapCenter.y;

@@ -11,9 +11,12 @@ namespace STCommander
         public GameObject WaypointPrefab;
         public TMPro.TMP_Text MapLegend;
 
+        public SolarSystem SelectedSystem { get; private set; }
+        public Waypoint SelectedWaypoint { get; private set; }
+
         private Transform SystemContainer;
+        private Transform WaypointContainer;
         private List<SolarSystem> solarSystems;
-        private SolarSystem selectedSystem;
         private Vector2 mapCenter = Vector2.zero;
         private float zoom = 500;
         private int displayedSystems;
@@ -25,11 +28,14 @@ namespace STCommander
             SystemContainer = new GameObject("SystemContainer").transform;
             SystemContainer.position = Vector3.zero;
             SystemContainer.parent = gameObject.transform.parent;
+            WaypointContainer = new GameObject("WaypointContainer").transform;
+            WaypointContainer.position = Vector3.zero;
+            WaypointContainer.parent = gameObject.transform.parent;
             CreateMap();
         }
         public void ParseInputs() {
             // TODO Deselect using in-world stuff, not rightclick.
-            if(Input.GetKeyDown(KeyCode.Mouse1)) { DeselectSystem(); }
+            if(Input.GetKeyDown(KeyCode.Mouse1)) { Deselect(); }
             MapControls();
         }
         private void OnDestroy() {
@@ -71,21 +77,25 @@ namespace STCommander
 
         public float GetZoom() => zoom;
         public Vector2 GetCenter() => mapCenter;
-        public void DeselectSystem() => SelectSystem(null);
 
         public async void SelectSystem( SolarSystem sys ) {
             // Deselect
-            if(selectedSystem != null && solarSystemObjects.ContainsKey(selectedSystem)) {
+            if(SelectedSystem != null && solarSystemObjects.ContainsKey(SelectedSystem)) {
                 //Nuke the waypoints of the previously selected system.
-                foreach(Transform t in solarSystemObjects[selectedSystem].transform.Find("Waypoints")) {
-                    GameObject.Destroy(t.gameObject);
+                foreach(Transform t in solarSystemObjects[SelectedSystem].transform.Find("Waypoints")) {
+                    Destroy(t.gameObject);
                 }
             }
-            if(sys == null) { return; }
-            selectedSystem = sys;
+            if(sys == null) {
+                SolarSystemVisual ssv = solarSystemObjects[SelectedSystem].GetComponent<SolarSystemVisual>();
+                SelectedSystem = null;
+                ssv.SetPosition();
+                return;
+            }
+            SelectedSystem = sys;
 
             // Recenter the map.
-            mapCenter = new Vector2(selectedSystem.x, selectedSystem.y);
+            mapCenter = new Vector2(SelectedSystem.x, SelectedSystem.y);
             RefreshMap();
 
             // Load the waypoints.
@@ -101,9 +111,74 @@ namespace STCommander
                 // Update the system in memory.
                 if(wp != sys.waypoints[i]) { sys.waypoints[i] = wp; }
                 // Send it.
-                SpawnWaypoint(wp, sys, solarSystemObjects[sys]);
+                SpawnWaypoint(wp, solarSystemObjects[sys].transform.Find("Waypoints"));
             }
         }
+
+        public async void SelectWaypoint(Waypoint wp ) {
+            // Deselect the currently selected system, if any.
+            if(SelectedSystem != null && wp != null) {
+                SelectSystem(null);
+            }
+            // Deselect the currently selected waypoint, if any.
+            if(SelectedWaypoint != null) {
+                foreach(Transform wpobj in WaypointContainer) {
+                    Destroy(wpobj.gameObject);
+                }
+            }
+            if(wp == null) {
+                // Select the parent system.
+                foreach(SolarSystem s in solarSystems) {
+                    if(s.symbol == SelectedWaypoint.systemSymbol) {
+                        SelectedWaypoint = null;
+                        SelectSystem(s);
+                        return;
+                    }
+                }
+            }
+            SelectedWaypoint = wp;
+
+            // Load the main selected object.
+            SpawnWaypoint(wp, WaypointContainer);
+
+            // Grab the latest info...
+            (ServerResult result, Waypoint updatedWp) = await ServerManager.CachedRequest<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+            if(result.result == ServerResult.ResultType.SUCCESS) {
+                wp = updatedWp;
+            } // Else: Just use the old data...
+
+            Waypoint orbital;
+            for(int i = 0; i < wp.orbitals.Length; i++) {
+                (result, orbital) = await ServerManager.CachedRequest<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.orbitals[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+                if(result.result != ServerResult.ResultType.SUCCESS) {
+                    Debug.LogError($"Failed to load waypoint {wp.orbitals[i].symbol}\n{result}");
+                    // Skip waypoints that error for some reason.
+                    continue;
+                }
+                SpawnWaypoint(orbital, WaypointContainer);
+            }
+        }
+        public float GetMapScale() {
+            if(SelectedSystem != null) {
+                float maxMagnitude = 0f;
+                foreach(Waypoint wp in SelectedSystem.waypoints) {
+                    float mag = new Vector2(wp.x, wp.y).magnitude;
+                    if(mag > maxMagnitude) { maxMagnitude = mag; }
+                }
+                return 2.0f / maxMagnitude;
+            } else {
+                return 1.5f / (float) (2f + SelectedWaypoint.orbitals.Length);
+            }
+        }
+
+        public void Deselect() {
+            if(SelectedWaypoint != null) {
+                SelectWaypoint(null);
+            } else if(SelectedSystem != null) {
+                SelectSystem(null);
+            }
+        }
+
         private void RefreshMap() {
             (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
             MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
@@ -198,13 +273,12 @@ namespace STCommander
             system.SetActive(true);
             return system;
         }
-        void SpawnWaypoint( Waypoint waypoint, SolarSystem sys, GameObject system ) {
+        void SpawnWaypoint( Waypoint waypoint, Transform parent ) {
             GameObject go = GameObject.Instantiate(WaypointPrefab);
             WaypointVisual wpvisual = go.GetComponent<WaypointVisual>();
-            go.transform.parent = system.transform.Find("Waypoints");
+            go.transform.parent = parent;
 
             wpvisual.waypoint = waypoint;
-            wpvisual.solarSystem = sys;
             wpvisual.MapManager = this;
 
             go.SetActive(true);
