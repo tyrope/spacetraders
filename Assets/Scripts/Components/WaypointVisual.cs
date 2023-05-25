@@ -12,12 +12,11 @@ namespace STCommander
         public GameObject[] models;
 
         private Transform parentOrbit = null;
-        private int totalSatellites = 1;
-        private int ourSatelliteIndex = 0;
+        private int SatelliteIndex = 0;
         private string WaypointSymbolEnd => waypoint.symbol.Split('-')[2];
 
         private float OrbitalAltitude;
-        private float OrbitalPeriod => Mathf.Sqrt((4 * Mathf.Pow(Mathf.PI, 2) * Mathf.Pow(parentOrbit == null ? OrbitalAltitude * solarSystem.GetSystemScale() : OrbitalAltitude, 3)) / 6.67430e-11f) / 1000f;
+        private float OrbitalPeriod => Mathf.Sqrt((4 * Mathf.Pow(Mathf.PI, 2) * Mathf.Pow(OrbitalAltitude * solarSystem.GetSystemScale(), 3)) / 6.67430e-11f) / (parentOrbit == null ? 500f : 250f);
         private float OrbitTime;
 
         // Start is called before the first frame update
@@ -28,14 +27,15 @@ namespace STCommander
 
             // Are we orbiting the main star, or another waypoint?
             SetParentOrbit();
+
+            float nowInSeconds = (float) DateTime.Now.Subtract(DateTime.MinValue).TotalSeconds;
+
             if(parentOrbit == null) {
                 OrbitalAltitude = new Vector2(waypoint.x, waypoint.y).magnitude;
-                OrbitTime = DateTime.Now.Ticks % OrbitalPeriod;
             } else {
-                OrbitalAltitude = 5f;
-                // TODO Fix all satellites overlapping despite being offset by Index.
-                OrbitTime = DateTime.Now.Ticks + OrbitalPeriod * (ourSatelliteIndex / (float) totalSatellites) % OrbitalPeriod;
+                OrbitalAltitude = 3f + SatelliteIndex;
             }
+            OrbitTime = nowInSeconds % OrbitalPeriod;
             SetPosition();
         }
 
@@ -45,8 +45,7 @@ namespace STCommander
                     for(int i = 0; i < wp.orbitals.Length; i++) {
                         if(wp.orbitals[i].symbol == waypoint.symbol) {
                             parentOrbit = transform.parent.Find($"({wp.x},{wp.y}){wp.symbol.Split('-')[2]}");
-                            totalSatellites = wp.orbitals.Length;
-                            ourSatelliteIndex = i;
+                            SatelliteIndex = i;
                             return;
                         }
                     }
@@ -56,24 +55,20 @@ namespace STCommander
 
         private void Update() {
             OrbitTime += Time.deltaTime;
-            if(OrbitTime >= OrbitalPeriod) { OrbitTime -= OrbitalPeriod; }
+            if(OrbitTime >= OrbitalPeriod) { OrbitTime %= OrbitalPeriod; }
             SetPosition();
         }
 
         public void SetPosition() {
             float rot = (OrbitTime / OrbitalPeriod) * 360f;
+            float scaledAltitude = OrbitalAltitude * solarSystem.GetSystemScale();
             if(parentOrbit == null) {
                 // We're orbiting the main star; align around 0.
-                transform.position = new Vector3(
-                    OrbitalAltitude * solarSystem.GetSystemScale() * Mathf.Sin(rot), 0,
-                    OrbitalAltitude * solarSystem.GetSystemScale() * Mathf.Cos(rot));
+                transform.position = new Vector3(scaledAltitude * Mathf.Sin(rot), 0, scaledAltitude * Mathf.Cos(rot));
             } else {
-                // We're orbiting another body; align around them.
-                // TODO These don't actually orbit, they're just static relative to their parent.
+                // We're orbiting another body; align around it.
                 transform.position = parentOrbit.position +
-                    new Vector3(
-                        OrbitalAltitude * solarSystem.GetSystemScale() * Mathf.Sin(rot), 0,
-                        OrbitalAltitude * solarSystem.GetSystemScale() * Mathf.Cos(rot));
+                    new Vector3(scaledAltitude * Mathf.Sin(rot), 0, scaledAltitude * Mathf.Cos(rot));
             }
         }
     }
