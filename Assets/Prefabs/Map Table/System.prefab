@@ -889,6 +889,8 @@ MonoBehaviour:
   - {fileID: 1045641050785011878, guid: dbe3ce59d35e5eb46ba77ac5acd95911, type: 3}
   - {fileID: 5612247204140049469, guid: 1c41828b23f0fab4693bdddabbf99c2f, type: 3}
   - {fileID: 4468776881324014421, guid: 3faf3eb9e460a00459f48b5da7ab0c97, type: 3}
+  labelDeselected: {fileID: 7430787549103523190}
+  labelSelected: {fileID: 2883475306258253725}
 --- !u!135 &4530910292720208515
 SphereCollider:
   m_ObjectHideFlags: 0

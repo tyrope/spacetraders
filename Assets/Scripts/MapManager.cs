@@ -18,7 +18,7 @@ namespace STCommander
         private Transform WaypointContainer;
         private List<SolarSystem> solarSystems;
         private Vector2 mapCenter = Vector2.zero;
-        private float zoom = 500;
+        private float zoom;
         private int displayedSystems;
 
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
@@ -44,16 +44,16 @@ namespace STCommander
         private void OnApplicationQuit() {
             OnDestroy();
         }
-        private void MapControls() {
+        
+        private async void MapControls() {
             /// Reset ///
             if(Input.GetKeyDown(KeyCode.Keypad5)) {
-                mapCenter = Vector2.zero;
-                zoom = 50;
+                await CenterMapOnHQ();
                 RefreshMap();
                 return;
             }
             /// Scroll ///
-            float scrollSpeed = 10f;
+            float scrollSpeed = 0.5f;
             Vector2 panDir = Vector2.zero;
             if(Input.GetKey(KeyCode.Keypad1)) { panDir += Vector2.down + Vector2.left; }
             if(Input.GetKey(KeyCode.Keypad2)) { panDir += Vector2.down; }
@@ -63,19 +63,20 @@ namespace STCommander
             if(Input.GetKey(KeyCode.Keypad7)) { panDir += Vector2.up + Vector2.left; }
             if(Input.GetKey(KeyCode.Keypad8)) { panDir += Vector2.up; }
             if(Input.GetKey(KeyCode.Keypad9)) { panDir += Vector2.up + Vector2.right; }
-            mapCenter += panDir.normalized * Time.deltaTime * scrollSpeed;
+            mapCenter += panDir.normalized * Time.deltaTime * scrollSpeed * zoom;
             /// ZOOOOOOOOOMIES ///
-            float zoomSpeed = 100f;
             int zoomDir = 0;
             if(Input.GetKey(KeyCode.KeypadMinus)) { zoomDir++; }
             if(Input.GetKey(KeyCode.KeypadPlus)) { zoomDir--; }
-            zoom += Time.deltaTime * zoomSpeed * zoomDir;
-            zoom = Mathf.Max(10, zoom); // No zooming in further than 10.
+
+            zoom += Time.deltaTime * zoomDir * Mathf.Pow(zoom, 1.1f);
+            zoom = Mathf.Clamp(zoom, 10, 5000); // No zooming to stupid numbers.
             /// Refresh if needed ///
             if(panDir != Vector2.zero || zoomDir != 0) { RefreshMap(); }
         }
 
         public float GetZoom() => zoom;
+        
         public Vector2 GetCenter() => mapCenter;
 
         public async void SelectSystem( SolarSystem sys ) {
@@ -225,6 +226,7 @@ namespace STCommander
                 }
             }
         }
+        
         // Create the world map as we know it.
         private async void CreateMap( int retries = 0 ) {
             // Load the galaxy
@@ -245,18 +247,7 @@ namespace STCommander
             }
 
             // Center on the Player HQ.
-            AgentInfo agent;
-            (result, agent) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
-            if(result.result == ServerResult.ResultType.SUCCESS) {
-                // Query the HQ waypoint for system name.
-                SolarSystem hq;
-                string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
-                (result, hq) = await ServerManager.CachedRequest<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
-                if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
-                mapCenter = new Vector2(hq.x, hq.y);
-            }
+            await CenterMapOnHQ();
             MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
 
             // Create the game objects.
@@ -283,6 +274,25 @@ namespace STCommander
             stopwatch.Stop();
             Debug.Log($"Map loaded! {displayedSystems} within range.");
         }
+        
+        // Center the map on the Player HQ
+        private async Task CenterMapOnHQ() {
+            // Center on the Player HQ.
+            (ServerResult result, AgentInfo agent) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            if(result.result == ServerResult.ResultType.SUCCESS) {
+                // Query the HQ waypoint for system name.
+                SolarSystem hq;
+                string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
+                (result, hq) = await ServerManager.CachedRequest<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
+                mapCenter = new Vector2(hq.x, hq.y);
+            }
+
+            zoom = 500;
+        }
+
         // Spawn a new known system.
         private GameObject SpawnSystem( SolarSystem sys ) {
             GameObject system = Instantiate(SystemPrefab);
@@ -294,6 +304,7 @@ namespace STCommander
             system.SetActive(true);
             return system;
         }
+        
         private GameObject SpawnWaypoint( Waypoint waypoint, Transform parent ) {
             GameObject go = GameObject.Instantiate(WaypointPrefab);
             WaypointVisual wpvisual = go.GetComponent<WaypointVisual>();
@@ -305,6 +316,7 @@ namespace STCommander
             go.SetActive(true);
             return go;
         }
+        
         private (Vector2, Vector2) GetMapBounds() {
             Vector2 minBounds = new Vector2(zoom * -1 + mapCenter.x, zoom * -1 + mapCenter.y);
             Vector2 maxBounds = new Vector2(zoom + mapCenter.x, zoom + mapCenter.y);

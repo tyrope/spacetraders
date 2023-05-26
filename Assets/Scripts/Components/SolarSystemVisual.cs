@@ -11,9 +11,9 @@ namespace STCommander
         public MapManager MapManager;
         public SolarSystem system;
         public GameObject[] models;
+        public GameObject labelDeselected;
+        public Transform labelSelected;
 
-        private GameObject labelDeselected;
-        private Transform labelSelected;
         private bool IsSelected;
 
         private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
@@ -27,11 +27,9 @@ namespace STCommander
             SetPosition();
 
             // Flat label (deselected) stuff.
-            labelDeselected = visuals.Find("Label").gameObject;
             labelDeselected.GetComponentInChildren<TMP_Text>().text = system.symbol;
 
             // Upright label (selected) stuff.
-            labelSelected = visuals.Find("SelectionInfo");
             labelSelected.Find("Symbol").GetComponent<TMP_Text>().text = system.symbol;
             labelSelected.Find("Type").GetComponent<TMP_Text>().text = GetStarClass();
             labelSelected.Find("Faction").GetComponent<TMP_Text>().text = await GetSystemOwners();
@@ -62,6 +60,16 @@ namespace STCommander
                 gameObject.transform.position = new Vector3(0, 0.5f, 0);
                 return;
             }
+
+            // Anti-lagg.
+            if(MapManager.GetZoom() > 2000 && !IsSelected) {
+                labelDeselected.SetActive(false);
+                transform.Find("Visuals").Find("HoloLight").gameObject.SetActive(false);
+            } else if(MapManager.GetZoom() <= 2000 && !IsSelected) {
+                labelDeselected.SetActive(true);
+                transform.Find("Visuals").Find("HoloLight").gameObject.SetActive(true);
+            }
+
             Vector2 mapCenter = MapManager.GetCenter() * -1;
             float xPos = system.x + mapCenter.x;
             float yPos = system.y + mapCenter.y;
