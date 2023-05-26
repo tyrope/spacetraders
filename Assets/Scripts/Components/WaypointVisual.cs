@@ -87,6 +87,10 @@ namespace STCommander
             float scaledAltitude = OrbitalAltitude * MapManager.GetMapScale();
             if(parentOrbit == null) {
                 // We're orbiting the main star; align around 0.
+                if(float.IsNaN(scaledAltitude) || float.IsNaN(rot)) {
+                    Debug.LogError($"Trying to set a position of a waypoint to NaN.\n{waypoint.symbol} Time: {OrbitTime}/{GetOrbitalPeriod()} - Alt: {OrbitalAltitude} * {MapManager.GetMapScale()}.");
+                    return;
+                }
                 transform.position = new Vector3(scaledAltitude * Mathf.Sin(rot), 0, scaledAltitude * Mathf.Cos(rot));
             } else {
                 // We're orbiting another body; align around it.
