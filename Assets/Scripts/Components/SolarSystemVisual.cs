@@ -70,10 +70,12 @@ namespace STCommander
                 transform.Find("Visuals").Find("HoloLight").gameObject.SetActive(true);
             }
 
-            Vector2 mapCenter = MapManager.GetCenter() * -1;
-            float xPos = system.x + mapCenter.x;
-            float yPos = system.y + mapCenter.y;
-            gameObject.transform.position = new Vector3(xPos, 0, yPos) / MapManager.GetZoom() * 2f;
+            try {
+                gameObject.transform.position = MapManager.GetWorldSpaceFromCoords(system.x, system.y);
+            } catch(System.ArgumentOutOfRangeException) {
+                // We're off the map? Just... stay where we are.
+                Debug.LogError("SolarSystemVisual::SetPosition() -- Why are we setting the position of an off-map system?");
+            }
         }
 
         private string GetStarClass() {

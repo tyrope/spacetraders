@@ -5,8 +5,7 @@ using System.Threading;
 
 namespace STCommander
 {
-    public class MapManager : MonoBehaviour
-    {
+    public class MapManager : MonoBehaviour {
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
         public TMPro.TMP_Text MapLegend;
@@ -321,6 +320,21 @@ namespace STCommander
             Vector2 minBounds = new Vector2(zoom * -1 + mapCenter.x, zoom * -1 + mapCenter.y);
             Vector2 maxBounds = new Vector2(zoom + mapCenter.x, zoom + mapCenter.y);
             return (minBounds, maxBounds);
+        }
+
+        public Vector3 GetWorldSpaceFromCoords( float x, float y ) {
+            return GetWorldSpaceFromCoords(new Vector2(x, y));
+        }
+
+        public Vector3 GetWorldSpaceFromCoords( Vector2 position ) {
+            (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
+            if(minBounds.x > position.x || position.x > maxBounds.x || minBounds.y > position.y || position.y > maxBounds.y) {
+                throw new System.ArgumentOutOfRangeException("position", "This location is outside of the map.");
+            }
+
+            float xPos = position.x + mapCenter.x * -1;
+            float yPos = position.y + mapCenter.y * -1;
+            return new Vector3(xPos, 0, yPos) / GetZoom() * 2f;
         }
     }
 }
