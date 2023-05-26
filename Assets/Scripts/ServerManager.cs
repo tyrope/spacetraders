@@ -130,7 +130,14 @@ namespace STCommander
             }
             request.SendWebRequest();
 
-            while(request.result == UnityWebRequest.Result.InProgress) { await Task.Yield(); }
+            while(request.result == UnityWebRequest.Result.InProgress) {
+                await Task.Yield();
+                if(cancel.IsCancellationRequested) {
+                    request.Abort();
+                    request.Dispose();
+                    return default;
+                }
+            }
 
             string err;
             switch(request.result) {

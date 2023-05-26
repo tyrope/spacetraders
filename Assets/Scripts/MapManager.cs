@@ -22,7 +22,7 @@ namespace STCommander
         private int displayedSystems;
 
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
-        private readonly CancellationTokenSource asyncCancelToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         void Start() {
             SystemContainer = new GameObject("SystemContainer").transform;
@@ -39,7 +39,7 @@ namespace STCommander
             MapControls();
         }
         private void OnDestroy() {
-            asyncCancelToken.Cancel();
+            AsyncCancelToken.Cancel();
         }
         private void OnApplicationQuit() {
             OnDestroy();
@@ -102,7 +102,8 @@ namespace STCommander
             Waypoint wp;
             ServerResult result;
             for(int i = 0; i < sys.waypoints.Count; i++) {
-                (result, wp) = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+                (result, wp) = await ServerManager.CachedRequest<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                if(AsyncCancelToken.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError($"Failed to load waypoint {sys.waypoints[i].symbol}\n{result}");
                     // Skip waypoints that error for some reason.
@@ -142,14 +143,16 @@ namespace STCommander
             SpawnWaypoint(wp, WaypointContainer);
 
             // Grab the latest info...
-            (ServerResult result, Waypoint updatedWp) = await ServerManager.CachedRequest<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+            (ServerResult result, Waypoint updatedWp) = await ServerManager.CachedRequest<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
             if(result.result == ServerResult.ResultType.SUCCESS) {
                 wp = updatedWp;
             } // Else: Just use the old data...
 
             Waypoint orbital;
             for(int i = 0; i < wp.orbitals.Length; i++) {
-                (result, orbital) = await ServerManager.CachedRequest<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.orbitals[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
+                (result, orbital) = await ServerManager.CachedRequest<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.orbitals[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                if(AsyncCancelToken.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError($"Failed to load waypoint {wp.orbitals[i].symbol}\n{result}");
                     // Skip waypoints that error for some reason.
@@ -212,16 +215,16 @@ namespace STCommander
             }
         }
         // Create the world map as we know it.
-        async void CreateMap( int retries = 0 ) {
+        private async void CreateMap( int retries = 0 ) {
             // Load the galaxy
             ServerResult result;
-            (result, solarSystems) = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, asyncCancelToken);
-            if(asyncCancelToken.IsCancellationRequested)
-                return;
+            (result, solarSystems) = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
             if(result.result != ServerResult.ResultType.SUCCESS) {
                 Debug.LogError($"Failed to load systems.json\n{result}");
                 if(retries < 5) {
                     await Task.Delay(1000);
+                    if(AsyncCancelToken.IsCancellationRequested) { return; }
                     CreateMap(retries + 1);
                     return;
                 } else {
@@ -232,14 +235,14 @@ namespace STCommander
 
             // Center on the Player HQ.
             AgentInfo agent;
-            (result, agent) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, asyncCancelToken);
-            if(asyncCancelToken.IsCancellationRequested) { return; }
+            (result, agent) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
             if(result.result == ServerResult.ResultType.SUCCESS) {
                 // Query the HQ waypoint for system name.
                 SolarSystem hq;
                 string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
-                (result, hq) = await ServerManager.CachedRequest<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, asyncCancelToken);
-                if(asyncCancelToken.IsCancellationRequested) { return; }
+                (result, hq) = await ServerManager.CachedRequest<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                if(AsyncCancelToken.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
                 mapCenter = new Vector2(hq.x, hq.y);
             }
@@ -262,7 +265,7 @@ namespace STCommander
                     stopwatch.Stop();
                     stopwatch.Reset();
                     await Task.Yield();
-                    if(asyncCancelToken.IsCancellationRequested) { return; }
+                    if(AsyncCancelToken.IsCancellationRequested) { return; }
                     stopwatch.Start();
                 }
             }
@@ -270,7 +273,7 @@ namespace STCommander
             Debug.Log($"Map loaded! {displayedSystems} within range.");
         }
         // Spawn a new known system.
-        GameObject SpawnSystem( SolarSystem sys ) {
+        private GameObject SpawnSystem( SolarSystem sys ) {
             GameObject system = Instantiate(SystemPrefab);
             system.transform.parent = SystemContainer;
             SolarSystemVisual sd = system.GetComponent<SolarSystemVisual>();
@@ -280,7 +283,7 @@ namespace STCommander
             system.SetActive(true);
             return system;
         }
-        void SpawnWaypoint( Waypoint waypoint, Transform parent ) {
+        private void SpawnWaypoint( Waypoint waypoint, Transform parent ) {
             GameObject go = GameObject.Instantiate(WaypointPrefab);
             WaypointVisual wpvisual = go.GetComponent<WaypointVisual>();
             go.transform.parent = parent;
@@ -290,7 +293,7 @@ namespace STCommander
 
             go.SetActive(true);
         }
-        (Vector2, Vector2) GetMapBounds() {
+        private (Vector2, Vector2) GetMapBounds() {
             Vector2 minBounds = new Vector2(zoom * -1 + mapCenter.x, zoom * -1 + mapCenter.y);
             Vector2 maxBounds = new Vector2(zoom + mapCenter.x, zoom + mapCenter.y);
             return (minBounds, maxBounds);

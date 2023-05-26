@@ -25,9 +25,7 @@ namespace STCommander
 
         private async void LoadContracts() {
             (ServerResult result, List<Contract> contractList) = await ServerManager.CachedRequest<List<Contract>>("my/contracts", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(result.result != ServerResult.ResultType.SUCCESS || AsyncCancelToken.IsCancellationRequested) {
-                return;
-            }
+            if(AsyncCancelToken.IsCancellationRequested || result.result != ServerResult.ResultType.SUCCESS) { return; }
             foreach(Contract contract in contractList) {
                 Contracts.Add(contract.id);
             }
@@ -35,7 +33,7 @@ namespace STCommander
 
         public static async Task<Contract> GetContract( string ID ) {
             (ServerResult result, Contract contract) = await ServerManager.CachedRequest<Contract>("my/contracts/" + ID, new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(result.result != ServerResult.ResultType.SUCCESS) { return null; }
+            if(AsyncCancelToken.IsCancellationRequested || result.result != ServerResult.ResultType.SUCCESS) { return null; }
             return contract;
         }
     }
