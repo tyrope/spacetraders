@@ -14,6 +14,7 @@ namespace STCommander
 
         private GameObject labelDeselected;
         private Transform labelSelected;
+        private bool IsSelected;
 
         private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
@@ -50,12 +51,14 @@ namespace STCommander
         }
 
         public void ChangeSelect(bool isSelectedNow) {
-            labelSelected.gameObject.SetActive(isSelectedNow);
-            labelDeselected.SetActive(isSelectedNow == false);
+            IsSelected = isSelectedNow;
+            labelSelected.gameObject.SetActive(IsSelected);
+            labelDeselected.SetActive(IsSelected == false);
+            SetPosition();
         }
 
         public void SetPosition() {
-            if(MapManager.SelectedSystem == system) {
+            if(IsSelected) {
                 gameObject.transform.position = new Vector3(0, 0.5f, 0);
                 return;
             }
