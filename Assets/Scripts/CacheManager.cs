@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace STCommander
 {
-    public class CacheHandler
+    public static class CacheManager
     {
         public enum ReturnCode { UNKNOWN_ERROR = -1, SUCCESS, NOT_FOUND, EXPIRED }
-        public class CachedItem
+        private class CachedItem
         {
             public string contents;
             public long createdAt;

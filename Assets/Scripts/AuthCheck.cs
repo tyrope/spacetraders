@@ -108,7 +108,7 @@ namespace STCommander
                 loginErrorTime = 2f;
                 return;
             }
-            CacheHandler.Save("my/agent", JsonConvert.SerializeObject(agentInfo), new System.TimeSpan(0, 1, 0));
+            CacheManager.Save("my/agent", JsonConvert.SerializeObject(agentInfo), new System.TimeSpan(0, 1, 0));
             if(useSavedToken == false) {
                 PlayerPrefs.SetString("AuthToken", authToken);
                 PlayerPrefs.Save();

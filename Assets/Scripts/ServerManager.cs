@@ -75,8 +75,8 @@ namespace STCommander
 
         public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
-            (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
-            if(code == CacheHandler.ReturnCode.SUCCESS) {
+            (CacheManager.ReturnCode code, string cacheData) = CacheManager.Load(endpoint);
+            if(code == CacheManager.ReturnCode.SUCCESS) {
                 // Success!
                 if(sendResultsToLog == LogVerbosity.EVERYTHING) {
                     Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
@@ -88,7 +88,7 @@ namespace STCommander
 
             // Save it to the Cache if successful.
             if(res.result == ServerResult.ResultType.SUCCESS) {
-                CacheHandler.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
+                CacheManager.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
             }
             return (res, result); // Done!
         }
