@@ -60,7 +60,6 @@ namespace STCommander
 
             // Selected
             ServerResult res;
-            Faction f;
             string tempValue;
 
             Transform gen = SelectedLabel.Find("General");
@@ -72,6 +71,7 @@ namespace STCommander
             } else if(waypoint.faction.name != null) {
                 tempValue = "Claimed by:\n" + waypoint.faction.name;
             } else {
+                Faction f;
                 (res, f) = await ServerManager.CachedRequest<Faction>($"factions/{waypoint.faction.symbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                 if(res.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError("WaypointVisual:SetLabelInfo() - Failed to fetch claimant info. Display symbol instead of name.");
@@ -91,13 +91,20 @@ namespace STCommander
                     tempValue = "Charted by:\n" + waypoint.faction.name;
                 } else {
                     // We gotta grab the Faction info.
-                    (res, f) = await ServerManager.CachedRequest<Faction>($"factions/{waypoint.chart.submittedBy}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                    List<Faction> lf;
+                    (res, lf) = await ServerManager.CachedRequest<List<Faction>>($"factions", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                     if(res.result != ServerResult.ResultType.SUCCESS) {
                         Debug.LogError($"WaypointVisual:SetLabelInfo() - Failed to fetch charter info. Display symbol ({waypoint.chart.submittedBy}) instead of name.");
                         tempValue = "Charted by:\n" + waypoint.faction.symbol;
                     } else {
-                        waypoint.faction = f;
-                        tempValue = "Charted by:\n" + f.name;
+                        tempValue = null;
+                        foreach(Faction f in lf) {
+                            if(f.symbol == waypoint.chart.submittedBy) {
+                                tempValue = "Charted by:\n" + f.name;
+                                break;
+                            }
+                        }
+                        tempValue = tempValue != null ? tempValue : $"Charted by:\n{waypoint.chart.submittedBy}";
                     }
                 }
             }
