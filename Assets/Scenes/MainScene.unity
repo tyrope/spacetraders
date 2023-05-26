@@ -2057,13 +2057,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1101542736}
-  - component: {fileID: 1101542735}
-  - component: {fileID: 1101542737}
-  - component: {fileID: 1101542738}
-  - component: {fileID: 1101542741}
-  - component: {fileID: 1101542740}
   - component: {fileID: 1101542739}
+  - component: {fileID: 1101542741}
   - component: {fileID: 1101542742}
+  - component: {fileID: 1101542737}
+  - component: {fileID: 1101542740}
+  - component: {fileID: 1101542735}
+  - component: {fileID: 1101542738}
   m_Layer: 0
   m_Name: __SCRIPTS__
   m_TagString: Untagged
