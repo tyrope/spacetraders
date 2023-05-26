@@ -69,15 +69,18 @@ namespace STCommander
         private static readonly RateLimit TrickleLimit = new RateLimit(2, new TimeSpan(0, 0, 1));
         private static readonly RateLimit BurstLimit = new RateLimit(10, new TimeSpan(0, 0, 10));
 
-        private static readonly bool sendResultsToLog = true; //DEBUG API log switch lives here.
+        
+        private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } // DEBUG Log Verbosity switch lives here.
+        private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
 
         public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
             (CacheHandler.ReturnCode code, string cacheData) = CacheHandler.Load(endpoint);
             if(code == CacheHandler.ReturnCode.SUCCESS) {
                 // Success!
-                if(sendResultsToLog)
+                if(sendResultsToLog == LogVerbosity.EVERYTHING) {
                     Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
+                }
                 return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), JsonConvert.DeserializeObject<T>(cacheData));
             }
             // Or grab it from the API instead.
@@ -132,13 +135,15 @@ namespace STCommander
             string err;
             switch(request.result) {
                 case UnityWebRequest.Result.ProtocolError:
-                    Log(method, endpoint, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload);
+                    if(sendResultsToLog != LogVerbosity.NONE)
+                        Log(method, endpoint, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload);
                     err = request.error;
                     request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.HTTP_ERROR, err), default);
                 case UnityWebRequest.Result.ConnectionError:
                 case UnityWebRequest.Result.DataProcessingError:
-                    Log(method, endpoint, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload);
+                    if(sendResultsToLog != LogVerbosity.NONE)
+                        Log(method, endpoint, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload);
                     err = request.error;
                     request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, err), default);
@@ -148,11 +153,13 @@ namespace STCommander
                     try {
                         // Unwrap a potential ServerResponse.
                         ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
-                        Log(method, endpoint, retstring, resp.meta?.ToString(), payload);
+                        if(sendResultsToLog != LogVerbosity.NONE || sendResultsToLog != LogVerbosity.ERROR_ONLY)
+                            Log(method, endpoint, retstring, resp.meta?.ToString(), payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
-                        Log(method, endpoint, retstring, payload: payload);
+                        if(sendResultsToLog != LogVerbosity.NONE || sendResultsToLog != LogVerbosity.ERROR_ONLY)
+                            Log(method, endpoint, retstring, payload: payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
                     }
                 default:
@@ -163,7 +170,6 @@ namespace STCommander
         }
 
         private static void Log( RequestMethod method, string endpoint, string response, string meta = null, string payload = null ) {
-            if(sendResultsToLog == false) { return; }
             string logString = $"[API:{method}]{endpoint} - Rate limiters: {RateLimitStatus()}\n";
             if(payload != null) {
                 logString += $"=> {payload}\n";
