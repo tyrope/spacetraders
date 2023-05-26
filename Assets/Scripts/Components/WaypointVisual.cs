@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using TMPro;
 using UnityEngine;
 
@@ -7,8 +9,10 @@ namespace STCommander
     public class WaypointVisual : MonoBehaviour
     {
         public MapManager MapManager;
-        public Waypoint waypoint;
         public GameObject[] models;
+        public GameObject DeselectedLabel;
+        public Transform SelectedLabel;
+        public Waypoint waypoint;
 
         private Transform parentOrbit = null;
         private int SatelliteIndex = 0;
@@ -16,12 +20,14 @@ namespace STCommander
 
         private float OrbitalAltitude;
         private float OrbitTime;
+        private bool IsSelected = false;
+        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         // Start is called before the first frame update
         void Start() {
             Instantiate(models[(int) waypoint.type], transform.Find("Visuals"));
             gameObject.name = $"({waypoint.x},{waypoint.y}){WaypointSymbolEnd}";
-            gameObject.GetComponentInChildren<TMP_Text>().text = WaypointSymbolEnd;
+            SetLabelInfo();
 
             // Are we orbiting the selected object, or another waypoint?
             SetParentOrbit();
@@ -46,6 +52,79 @@ namespace STCommander
             OrbitTime += Time.deltaTime;
             if(OrbitTime >= GetOrbitalPeriod()) { OrbitTime %= GetOrbitalPeriod(); }
             SetPosition();
+        }
+
+        private async void SetLabelInfo() {
+            // Deselected
+            DeselectedLabel.GetComponentInChildren<TMP_Text>().text = WaypointSymbolEnd;
+
+            // Selected
+            ServerResult res;
+            Faction f;
+            string tempValue;
+
+            Transform gen = SelectedLabel.Find("General");
+            gen.Find("Symbol").GetComponent<TMP_Text>().text = WaypointSymbolEnd;
+            tempValue = waypoint.type.ToString();
+            gen.Find("Type").GetComponent<TMP_Text>().text = tempValue[0].ToString() + tempValue.Replace('_', ' ').Substring(1).ToLower();
+            if(waypoint.faction == null) {
+                tempValue = "Unclaimed";
+            } else if(waypoint.faction.name != null) {
+                tempValue = "Claimed by:\n" + waypoint.faction.name;
+            } else {
+                (res, f) = await ServerManager.CachedRequest<Faction>($"factions/{waypoint.faction.symbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                if(res.result != ServerResult.ResultType.SUCCESS) {
+                    Debug.LogError("WaypointVisual:SetLabelInfo() - Failed to fetch claimant info. Display symbol instead of name.");
+                    tempValue = "Claimed by:\n" + waypoint.faction.symbol;
+                } else {
+                    waypoint.faction = f;
+                    tempValue = "Claimed by:\n" + f.name;
+                }
+            }
+            gen.Find("Faction").GetComponent<TMP_Text>().text = tempValue;
+
+            if(waypoint.chart == null) {
+                tempValue = "Uncharted";
+            } else {
+                if(waypoint.chart.submittedBy == waypoint.faction.symbol) {
+                    // Easy!
+                    tempValue = "Charted by:\n" + waypoint.faction.name;
+                } else {
+                    // We gotta grab the Faction info.
+                    (res, f) = await ServerManager.CachedRequest<Faction>($"factions/{waypoint.chart.submittedBy}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                    if(res.result != ServerResult.ResultType.SUCCESS) {
+                        Debug.LogError($"WaypointVisual:SetLabelInfo() - Failed to fetch charter info. Display symbol ({waypoint.chart.submittedBy}) instead of name.");
+                        tempValue = "Charted by:\n" + waypoint.faction.symbol;
+                    } else {
+                        waypoint.faction = f;
+                        tempValue = "Charted by:\n" + f.name;
+                    }
+                }
+            }
+            gen.Find("Chart").GetComponent<TMP_Text>().text = tempValue;
+
+            List<string> traits = new List<string>();
+            if(waypoint.traits == null) {
+                // Fetch!
+                Waypoint wp;
+                (res, wp) = await ServerManager.CachedRequest<Waypoint>($"systems/{waypoint.systemSymbol}/waypoints/{waypoint.symbol}", new TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                if(res.result != ServerResult.ResultType.SUCCESS) {
+                    Debug.LogError("WaypointVisual:SetLabelInfo() - Failed to fetch Waypoint info. No traits can be displayed.");
+                } else {
+                    waypoint = wp;
+                }
+            }
+
+            foreach(Trait t in waypoint.traits) {
+                traits.Add(t.name);
+            }
+            SelectedLabel.Find("Traits").GetComponent<TMP_Text>().text = string.Join('\n', traits);
+        }
+
+        public void SetSelected( bool select ) {
+            IsSelected = select;
+            DeselectedLabel.SetActive(IsSelected == false);
+            SelectedLabel.gameObject.SetActive(IsSelected);
         }
 
         private void SetParentOrbit() {
@@ -80,7 +159,7 @@ namespace STCommander
         }
 
         private void SetPosition() {
-            if(MapManager.SelectedWaypoint == waypoint) {
+            if(IsSelected) {
                 return; // We're the middle point; don't orbit.
             }
             float rot = (OrbitTime / GetOrbitalPeriod()) * 360f;

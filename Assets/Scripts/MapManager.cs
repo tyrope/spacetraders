@@ -132,7 +132,7 @@ namespace STCommander
             if(SelectedSystem != null && wp != null) {
                 SelectSystem(null);
             }
-            // Deselect the currently selected waypoint, if any.
+            // Delete all waypoint objects if we're deselecting.
             if(SelectedWaypoint != null) {
                 foreach(Transform wpobj in WaypointContainer) {
                     Destroy(wpobj.gameObject);
@@ -150,15 +150,15 @@ namespace STCommander
             }
             SelectedWaypoint = wp;
 
-            // Load the main selected object.
-            SpawnWaypoint(wp, WaypointContainer);
-
             // Grab the latest info...
             (ServerResult result, Waypoint updatedWp) = await ServerManager.CachedRequest<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested) { return; }
             if(result.result == ServerResult.ResultType.SUCCESS) {
                 wp = updatedWp;
             } // Else: Just use the old data...
+
+            // Load the main selected object and let it know it's The Chosen One.
+            SpawnWaypoint(wp, WaypointContainer).GetComponent<WaypointVisual>().SetSelected(true);
 
             Waypoint orbital;
             for(int i = 0; i < wp.orbitals.Length; i++) {
@@ -294,7 +294,7 @@ namespace STCommander
             system.SetActive(true);
             return system;
         }
-        private void SpawnWaypoint( Waypoint waypoint, Transform parent ) {
+        private GameObject SpawnWaypoint( Waypoint waypoint, Transform parent ) {
             GameObject go = GameObject.Instantiate(WaypointPrefab);
             WaypointVisual wpvisual = go.GetComponent<WaypointVisual>();
             go.transform.parent = parent;
@@ -303,6 +303,7 @@ namespace STCommander
             wpvisual.MapManager = this;
 
             go.SetActive(true);
+            return go;
         }
         private (Vector2, Vector2) GetMapBounds() {
             Vector2 minBounds = new Vector2(zoom * -1 + mapCenter.x, zoom * -1 + mapCenter.y);
