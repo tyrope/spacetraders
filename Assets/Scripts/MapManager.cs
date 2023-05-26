@@ -8,6 +8,7 @@ namespace STCommander
     public class MapManager : MonoBehaviour {
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
+        public GameObject shipPrefab;
         public TMPro.TMP_Text MapLegend;
 
         public SolarSystem SelectedSystem { get; private set; }
@@ -15,12 +16,14 @@ namespace STCommander
 
         private Transform SystemContainer;
         private Transform WaypointContainer;
+        private Transform ShipContainer;
         private List<SolarSystem> solarSystems;
         private Vector2 mapCenter = Vector2.zero;
         private float zoom;
         private int displayedSystems;
 
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
+        private readonly Dictionary<string, GameObject> shipObjects = new Dictionary<string, GameObject>();
         private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         void Start() {
@@ -31,6 +34,7 @@ namespace STCommander
             WaypointContainer.position = Vector3.zero;
             WaypointContainer.parent = gameObject.transform.parent;
             CreateMap();
+            LoadShips();
         }
         public void ParseInputs() {
             // TODO Deselect using in-world stuff, not rightclick.
@@ -43,7 +47,7 @@ namespace STCommander
         private void OnApplicationQuit() {
             OnDestroy();
         }
-        
+
         private async void MapControls() {
             /// Reset ///
             if(Input.GetKeyDown(KeyCode.Keypad5)) {
@@ -75,7 +79,7 @@ namespace STCommander
         }
 
         public float GetZoom() => zoom;
-        
+
         public Vector2 GetCenter() => mapCenter;
 
         public async void SelectSystem( SolarSystem sys ) {
@@ -124,7 +128,7 @@ namespace STCommander
             solarSystemObjects[SelectedSystem].GetComponent<SolarSystemVisual>().ChangeSelect(true);
         }
 
-        public async void SelectWaypoint(Waypoint wp ) {
+        public async void SelectWaypoint( Waypoint wp ) {
             // Selecting the already selected waypoint might break things, so don't be stupid.
             if(wp == SelectedWaypoint) { return; }
 
@@ -225,7 +229,52 @@ namespace STCommander
                 }
             }
         }
-        
+
+        private async void LoadShips() {
+            ShipContainer = new GameObject("ShipContainer").transform;
+            ShipContainer.position = Vector3.zero;
+            ShipContainer.parent = gameObject.transform.parent;
+
+            GameObject go;
+            ShipVisual sv;
+            SolarSystem sys;
+            Ship ship;
+            Vector3 position;
+            ServerResult res;
+
+            if(ShipManager.Ships.Count == 0) {
+                ShipManager.LoadShips();
+            }
+            foreach(string shipId in ShipManager.Ships) {
+                Debug.Log($"Loading ship {shipId}");
+                ship = await ShipManager.GetShip(shipId);
+                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                switch(ship.nav.status) {
+                    case Ship.Navigation.Status.IN_TRANSIT:
+                        Debug.Log("Not rendering in-transhit ships yet...");
+                        break;
+                    default: // Non-moving ships.
+                        // Get our location.
+                        (res, sys) = await ServerManager.CachedRequest<SolarSystem>($"systems/{ship.nav.systemSymbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                        if(AsyncCancelToken.IsCancellationRequested) { return; }
+
+                        // Where do we render this ship?
+                        try {
+                            position = GetWorldSpaceFromCoords(sys.x, sys.y);
+                        } catch(System.ArgumentOutOfRangeException) {
+                            Debug.Log($"{ship.symbol} is off map {ship.nav.systemSymbol}@({sys.x},{sys.y})");
+                            continue; // This ship is off-map.
+                        }
+                        go = Instantiate(shipPrefab, position, Quaternion.identity, ShipContainer);
+                        go.name = ship.symbol;
+                        shipObjects.Add(ship.symbol, go);
+                        sv = go.GetComponent<ShipVisual>();
+                        sv.ship = ship;
+                        break;
+                }
+            }
+        }
+
         // Create the world map as we know it.
         private async void CreateMap( int retries = 0 ) {
             // Load the galaxy
@@ -273,7 +322,7 @@ namespace STCommander
             stopwatch.Stop();
             Debug.Log($"Map loaded! {displayedSystems} within range.");
         }
-        
+
         // Center the map on the Player HQ
         private async Task CenterMapOnHQ() {
             // Center on the Player HQ.
@@ -303,7 +352,7 @@ namespace STCommander
             system.SetActive(true);
             return system;
         }
-        
+
         private GameObject SpawnWaypoint( Waypoint waypoint, Transform parent ) {
             GameObject go = GameObject.Instantiate(WaypointPrefab);
             WaypointVisual wpvisual = go.GetComponent<WaypointVisual>();
@@ -315,7 +364,7 @@ namespace STCommander
             go.SetActive(true);
             return go;
         }
-        
+
         private (Vector2, Vector2) GetMapBounds() {
             Vector2 minBounds = new Vector2(zoom * -1 + mapCenter.x, zoom * -1 + mapCenter.y);
             Vector2 maxBounds = new Vector2(zoom + mapCenter.x, zoom + mapCenter.y);

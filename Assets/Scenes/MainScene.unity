@@ -2085,6 +2085,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SystemPrefab: {fileID: 7430787548948740046, guid: 8515d84faed71384c9a45288880775ff, type: 3}
   WaypointPrefab: {fileID: 749999442325970826, guid: 97af577945f82be4ca184b360c4c01b5, type: 3}
+  shipPrefab: {fileID: 2148131633784640598, guid: e5e030106725a264195e5cf10c680725, type: 3}
   MapLegend: {fileID: 1161278293}
 --- !u!4 &1101542736
 Transform:

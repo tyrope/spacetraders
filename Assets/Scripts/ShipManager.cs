@@ -7,31 +7,50 @@ namespace STCommander
 {
     public class ShipManager : MonoBehaviour
     {
-        public static List<string> Ships = new List<string>();
+        public static readonly List<string> Ships = new List<string>();
+        public delegate Task asyncShipDelegate( Ship ship );
+        private static asyncShipDelegate OnShipMovement;
+
 
         private static readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         // Start is called before the first frame update
         void Start() {
-            LoadShips();
+            if(Ships.Count == 0) {
+                LoadShips();
+            }
         }
+
         void OnDestroy() {
             AsyncCancelToken?.Cancel();
         }
+
         void OnApplicationQuit() {
             OnDestroy();
         }
-        private async void LoadShips() {
+
+        public static async void LoadShips() {
             (ServerResult result, List<Ship> shipList) = await ServerManager.CachedRequest<List<Ship>>("my/ships", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested) { return; }
             if(result.result != ServerResult.ResultType.SUCCESS) { return; }
             foreach(Ship ship in shipList) { Ships.Add(ship.symbol); }
         }
+
         public static async Task<Ship> GetShip( string symbol ) {
             (ServerResult result, Ship ship) = await ServerManager.CachedRequest<Ship>("my/ships/" + symbol, new System.TimeSpan(0, 0, 10), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested) { return null; }
             if(result.result != ServerResult.ResultType.SUCCESS) { return null; }
             return ship;
+        }
+
+        public static void RegisterShipMovementEvent(asyncShipDelegate del ) {
+            OnShipMovement += del;
+        }
+
+        public static void UnregisterShipMovementEvent(asyncShipDelegate del ) {
+            try {
+                OnShipMovement -= del;
+            } catch { } // If it's not there oh well.
         }
     }
 }
