@@ -30,6 +30,15 @@ namespace STCommander
             public Meta meta;
         }
 
+        private class ErrorResponse {
+            public class Error
+            {
+                public string message;
+                public int code;
+            }
+            public Error error;
+        }
+
         private class RateLimit
         {
             public DateTime ResetTime { get; private set; }
@@ -95,74 +104,53 @@ namespace STCommander
             }
             return (res, result); // Done!
         }
+
         public async static Task<(ServerResult, T)> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null ) {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
             string uri = Server + endpoint;
 
-            UnityWebRequest request;
-            switch(method) {
-                case RequestMethod.GET:
-                    request = UnityWebRequest.Get(new Uri(uri));
-                    break;
-                case RequestMethod.POST:
-                    byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
-                    request = new UnityWebRequest(uri, "POST") {
-                        uploadHandler = new UploadHandlerRaw(payloadBytes)
-                    };
-                    break;
-                default:
-                    throw new NotImplementedException("The method you've requested is not yet available.");
-            }
+            await WaitForRateLimiter();
 
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
-            if(authToken != null) {
-                // Override for AuthCheck to use.
-                request.SetRequestHeader("Authorization", "Bearer " + authToken);
-            } else if(PlayerPrefs.HasKey("AuthToken")) {
-                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("AuthToken"));
-            }
-
-            // Rate limiting.
-            while(true) {
-                if(TrickleLimit.TryMakeRequest()) {
-                    break;
-                } else if(BurstLimit.TryMakeRequest()) {
-                    break;
-                }
-                TimeSpan delay = (TrickleLimit.ResetTime < BurstLimit.ResetTime ? TrickleLimit.ResetTime : BurstLimit.ResetTime) - DateTime.Now;
-                await Task.Delay((int) Math.Ceiling(delay.TotalMilliseconds));
-            }
+            using UnityWebRequest request = MakeRequest(method, uri, payload, authToken);
             request.SendWebRequest();
-
             while(request.result == UnityWebRequest.Result.InProgress) {
                 await Task.Yield();
                 if(cancel.IsCancellationRequested) {
                     request.Abort();
-                    request.Dispose();
                     return default;
                 }
             }
 
-            string err;
             switch(request.result) {
-                case UnityWebRequest.Result.ProtocolError:
+                case UnityWebRequest.Result.ProtocolError: //HTTP Errors
+                    //Error handling:
+                    ErrorResponse.Error error = JsonConvert.DeserializeObject<ErrorResponse>(request.downloadHandler.text).error;
+                    switch(error.code) {
+                        case 409: // Conflict
+                            int delay = UnityEngine.Random.Range(10, 1001);
+                            if(sendResultsToLog != LogVerbosity.NONE)
+                                Log(method, endpoint, $"HTTPError: {request.error}\nTrying again in {delay}ms.", payload: payload);
+                            await Task.Delay(delay);
+                            return await Request<T>(endpoint, method, cancel, payload, authToken);
+                        case 429: // Too Many Requests
+                            if(sendResultsToLog != LogVerbosity.NONE)
+                                Log(method, endpoint, $"HTTPError: { request.error}\nTrying again in 1s.", payload: payload);
+                            await Task.Delay(1000);
+                            return await Request<T>(endpoint, method, cancel, payload, authToken);
+                        default:
+                            if(sendResultsToLog != LogVerbosity.NONE)
+                                Log(method, endpoint, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload, error: true);
+                            break;
+                    }
+                    return (new ServerResult(ServerResult.ResultType.HTTP_ERROR, request.error), default);
+                case UnityWebRequest.Result.ConnectionError: // Connection Errors.
+                case UnityWebRequest.Result.DataProcessingError: // API Errors.
                     if(sendResultsToLog != LogVerbosity.NONE)
-                        Log(method, endpoint, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload);
-                    err = request.error;
-                    request.Dispose();
-                    return (new ServerResult(ServerResult.ResultType.HTTP_ERROR, err), default);
-                case UnityWebRequest.Result.ConnectionError:
-                case UnityWebRequest.Result.DataProcessingError:
-                    if(sendResultsToLog != LogVerbosity.NONE)
-                        Log(method, endpoint, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload);
-                    err = request.error;
-                    request.Dispose();
-                    return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, err), default);
-                case UnityWebRequest.Result.Success:
+                        Log(method, endpoint, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload, error: true);
+                    return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, request.error), default);
+                case UnityWebRequest.Result.Success: // Success!
                     string retstring = request.downloadHandler.text;
-                    request.Dispose();
                     try {
                         // Unwrap a potential ServerResponse.
                         ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
@@ -177,12 +165,56 @@ namespace STCommander
                     }
                 default:
                     Debug.LogError("Theoretically unreachable code found!");
-                    request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.UNKNOWN_ERROR, "Unreachable code."), default);
             }
         }
 
-        private static void Log( RequestMethod method, string endpoint, string response, string meta = null, string payload = null ) {
+        private static async Task WaitForRateLimiter() {
+            while(true) {
+                if(TrickleLimit.TryMakeRequest()) {
+                    break;
+                } else if(BurstLimit.TryMakeRequest()) {
+                    break;
+                }
+                TimeSpan delay = (TrickleLimit.ResetTime < BurstLimit.ResetTime ? TrickleLimit.ResetTime : BurstLimit.ResetTime) - DateTime.Now;
+                await Task.Delay((int) Math.Ceiling(delay.TotalMilliseconds));
+            }
+        }
+
+        /// <summary>
+        /// This function instantiates a UnityWebRequest object, but does NOT send the request out.
+        /// </summary>
+        /// <param name="method">Method of contacting the server (GET, POST, etc)</param>
+        /// <param name="uri">The full link to contact</param>
+        /// <param name="payload">The JSON payload to send for POST requests.</param>
+        /// <param name="authToken">The authentication token to send, if left null we'll try the token stored in PlayerPrefs.</param>
+        /// <returns>An *unconnected* UnityWebRequest.</returns>
+        private static UnityWebRequest MakeRequest( RequestMethod method, string uri, string payload, string authToken) {
+            UnityWebRequest request;
+            switch(method) {
+                case RequestMethod.GET:
+                    request = UnityWebRequest.Get(new Uri(uri));
+                    break;
+                case RequestMethod.POST:
+                    byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
+                    request = new UnityWebRequest(uri, "POST") {
+                        uploadHandler = new UploadHandlerRaw(payloadBytes)
+                    };
+                    break;
+                default:
+                    throw new NotImplementedException("The method you've requested is not yet available.");
+            }
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+            if(authToken != null) {
+                request.SetRequestHeader("Authorization", "Bearer " + authToken);
+            } else if(PlayerPrefs.HasKey("AuthToken")) {
+                request.SetRequestHeader("Authorization", "Bearer " + PlayerPrefs.GetString("AuthToken"));
+            }
+            return request;
+        }
+
+        private static void Log( RequestMethod method, string endpoint, string response, string meta = null, string payload = null, bool error = false ) {
             string logString = $"[API:{method}]{endpoint} - Rate limiters: {RateLimitStatus()}\n";
             if(payload != null) {
                 logString += $"=> {payload}\n";
@@ -192,7 +224,11 @@ namespace STCommander
             } else {
                 logString += $"<= {response}";
             }
-            Debug.Log(logString);
+            if(error) {
+                Debug.LogError(logString);
+            } else {
+                Debug.Log(logString);
+            }
         }
 
         private static string RateLimitStatus() {
