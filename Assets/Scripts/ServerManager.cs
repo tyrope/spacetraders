@@ -74,6 +74,9 @@ namespace STCommander
         private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
 
         public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
+            // Remove any starting or trailing slashes.
+            endpoint = endpoint.Trim('/');
+
             // Grab data from cache.
             (CacheManager.ReturnCode code, string cacheData) = CacheManager.Load(endpoint);
             if(code == CacheManager.ReturnCode.SUCCESS) {
@@ -93,6 +96,8 @@ namespace STCommander
             return (res, result); // Done!
         }
         public async static Task<(ServerResult, T)> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null ) {
+            // Remove any starting or trailing slashes.
+            endpoint = endpoint.Trim('/');
             string uri = Server + endpoint;
 
             UnityWebRequest request;
