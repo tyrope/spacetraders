@@ -81,17 +81,20 @@ namespace STCommander
         public async void SelectSystem( SolarSystem sys ) {
             // Selecting the already selected system breaks things, so don't be stupid.
             if(sys == SelectedSystem) { return; }
+
+
             // Deselect
             if(SelectedSystem != null && solarSystemObjects.ContainsKey(SelectedSystem)) {
+                //Tell the SSV it's been deselected.
+                solarSystemObjects[SelectedSystem].GetComponent<SolarSystemVisual>().ChangeSelect(false);
+
                 //Nuke the waypoints of the previously selected system.
                 foreach(Transform t in solarSystemObjects[SelectedSystem].transform.Find("Waypoints")) {
                     Destroy(t.gameObject);
                 }
             }
             if(sys == null) {
-                SolarSystemVisual ssv = solarSystemObjects[SelectedSystem].GetComponent<SolarSystemVisual>();
                 SelectedSystem = null;
-                ssv.SetPosition();
                 return;
             }
             SelectedSystem = sys;
@@ -116,6 +119,9 @@ namespace STCommander
                 // Send it.
                 SpawnWaypoint(wp, solarSystemObjects[sys].transform.Find("Waypoints"));
             }
+
+            // Tell the new system's visual it's been selected.
+            solarSystemObjects[SelectedSystem].GetComponent<SolarSystemVisual>().ChangeSelect(true);
         }
 
         public async void SelectWaypoint(Waypoint wp ) {
