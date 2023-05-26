@@ -30,10 +30,46 @@ namespace STCommander
             public Meta meta;
         }
 
-        private static readonly string Server = "https://api.spacetraders.io/v2/";
-        private static readonly Queue<DateTime> LastCalls = new Queue<DateTime>();
+        private class RateLimit
+        {
+            public DateTime ResetTime { get; private set; }
+            public int Amount { get; private set; } = 0;
+            public readonly int limit;
+            private readonly TimeSpan cooldown;
+            
+            /// <summary>
+            /// Instantiate a new ratelimit pool.
+            /// </summary>
+            /// <param name="poolSize">The size of the pool.</param>
+            /// <param name="reset">How long it takes for the pool to refill.</param>
+            public RateLimit(int poolSize, TimeSpan reset) {
+                cooldown = reset;
+                limit = poolSize;
+                ResetTime = DateTime.Now;
+            }
 
-        private static readonly bool sendResultsToLog = false; //DEBUG API log switch lives here.
+            /// <summary>
+            /// Check the rate limiter to see if we're allowed to make a request right now.
+            /// </summary>
+            /// <returns>true if we the request is allowed through right now. false if we're being limited.</returns>
+            public bool TryMakeRequest() {
+                if(Amount == 0 || ResetTime < DateTime.Now) {
+                    ResetTime = DateTime.Now + cooldown;
+                    Amount = 1;
+                    return true;
+                }else if(Amount < limit) {
+                    Amount++;
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        private static readonly string Server = "https://api.spacetraders.io/v2/";
+        private static readonly RateLimit TrickleLimit = new RateLimit(2, new TimeSpan(0, 0, 1));
+        private static readonly RateLimit BurstLimit = new RateLimit(10, new TimeSpan(0, 0, 10));
+
+        private static readonly bool sendResultsToLog = true; //DEBUG API log switch lives here.
 
         public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Grab data from cache.
@@ -81,24 +117,14 @@ namespace STCommander
             }
 
             // Rate limiting.
-            // TODO rework now that I have more accurate info on how the limiter works: https://github.com/SpaceTradersAPI/api-docs/wiki/Ratelimit
-            while(LastCalls.Count >= 10) {
-                // If we're caught in this block, we've hit the rate limiter.
-                while(LastCalls.Count > 0 && DateTime.Compare(
-                        LastCalls.Peek(),
-                        DateTime.Now - new TimeSpan(0, 0, 0, 0, 500)
-                ) < 0) {
-                    // Expire any tokens older than 500ms
-                    LastCalls.Dequeue();
+            while(true) {
+                if(TrickleLimit.TryMakeRequest()) {
+                    break;
+                } else if(BurstLimit.TryMakeRequest()) {
+                    break;
                 }
-
-                // Check if we're allowed to break out of the buffer yet.
-                if(LastCalls.Count < 10) { break; }
-
-                // Wait a frame.
                 await Task.Yield();
             }
-            LastCalls.Enqueue(DateTime.Now);
             request.SendWebRequest();
 
             while(request.result == UnityWebRequest.Result.InProgress) { await Task.Yield(); }
@@ -106,13 +132,13 @@ namespace STCommander
             string err;
             switch(request.result) {
                 case UnityWebRequest.Result.ProtocolError:
-                    Log(method, endpoint, LastCalls.Count, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload);
+                    Log(method, endpoint, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload);
                     err = request.error;
                     request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.HTTP_ERROR, err), default);
                 case UnityWebRequest.Result.ConnectionError:
                 case UnityWebRequest.Result.DataProcessingError:
-                    Log(method, endpoint, LastCalls.Count, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload);
+                    Log(method, endpoint, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload);
                     err = request.error;
                     request.Dispose();
                     return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, err), default);
@@ -122,11 +148,11 @@ namespace STCommander
                     try {
                         // Unwrap a potential ServerResponse.
                         ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
-                        Log(method, endpoint, LastCalls.Count, retstring, resp.meta?.ToString(), payload);
+                        Log(method, endpoint, retstring, resp.meta?.ToString(), payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
-                        Log(method, endpoint, LastCalls.Count, retstring, payload: payload);
+                        Log(method, endpoint, retstring, payload: payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
                     }
                 default:
@@ -136,9 +162,9 @@ namespace STCommander
             }
         }
 
-        private static void Log( RequestMethod method, string endpoint, int ratelimit, string response, string meta = null, string payload = null ) {
+        private static void Log( RequestMethod method, string endpoint, string response, string meta = null, string payload = null ) {
             if(sendResultsToLog == false) { return; }
-            string logString = $"[API:{method}]{endpoint} - Rate Limit:{ratelimit}/10\n";
+            string logString = $"[API:{method}]{endpoint} - Rate limiters: {RateLimitStatus()}\n";
             if(payload != null) {
                 logString += $"=> {payload}\n";
             }
@@ -148,6 +174,12 @@ namespace STCommander
                 logString += $"<= {response}";
             }
             Debug.Log(logString);
+        }
+
+        private static string RateLimitStatus() {
+            string trickleTime = Mathf.Max(0, (float) (TrickleLimit.ResetTime - DateTime.Now).TotalSeconds).ToString("F2");
+            string burstTime = Mathf.Max(0, (float) (BurstLimit.ResetTime - DateTime.Now).TotalSeconds).ToString("F2");
+            return $"T{TrickleLimit.Amount}/{TrickleLimit.limit}({trickleTime}s) - B{BurstLimit.Amount}/{BurstLimit.limit}({burstTime}s)";
         }
     }
 }
