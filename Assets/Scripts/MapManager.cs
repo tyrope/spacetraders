@@ -79,6 +79,8 @@ namespace STCommander
         public Vector2 GetCenter() => mapCenter;
 
         public async void SelectSystem( SolarSystem sys ) {
+            // Selecting the already selected system breaks things, so don't be stupid.
+            if(sys == SelectedSystem) { return; }
             // Deselect
             if(SelectedSystem != null && solarSystemObjects.ContainsKey(SelectedSystem)) {
                 //Nuke the waypoints of the previously selected system.
@@ -117,6 +119,9 @@ namespace STCommander
         }
 
         public async void SelectWaypoint(Waypoint wp ) {
+            // Selecting the already selected waypoint might break things, so don't be stupid.
+            if(wp == SelectedWaypoint) { return; }
+
             // Deselect the currently selected system, if any.
             if(SelectedSystem != null && wp != null) {
                 SelectSystem(null);
