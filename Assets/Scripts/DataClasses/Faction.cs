@@ -9,5 +9,6 @@ namespace STCommander
         public string description;
         public string headquarters;
         public List<Trait> traits;
+        public bool isRecruiting;
     }
 }

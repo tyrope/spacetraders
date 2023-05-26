@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -39,6 +40,9 @@ namespace STCommander
                 CheckAuthorization(true);
                 return;
             }
+
+            FillFactionDropdown();
+            //TODO Add a part of the UI that describes the currently selected faction?
         }
 
         void Update() {
@@ -74,14 +78,26 @@ namespace STCommander
             }
             Debug.Log($"Creating agent {name} in faction {faction}");
 
-            (ServerResult result, RegistrationResult reg) = await ServerManager.Request<RegistrationResult>("register", RequestMethod.POST, AsyncCancelToken, payload:req);
+            (ServerResult result, RegistrationResult reg) = await ServerManager.Request<RegistrationResult>("register", RequestMethod.POST, AsyncCancelToken, payload: req);
             if(result.result != ServerResult.ResultType.SUCCESS) {
                 Debug.LogError($"Error creating agent:\n{result.details}");
                 registerErrorTime = 2f;
                 return;
             }
-            SaveWarning.SetActive(true);
+            SaveWarning.GetComponent<TMPro.TMP_Text>().enabled = true;
             TokenInputField.text = reg.token;
+        }
+
+        public async void FillFactionDropdown() {
+            (ServerResult res, List<Faction> factions) = await ServerManager.CachedRequest<List<Faction>>("factions?limit=20", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            List<string> recruiting = new List<string>();
+            foreach(Faction f in factions) {
+                if(f.isRecruiting) {
+                    recruiting.Add(f.symbol);
+                }
+            }
+            FactionDropdown.AddOptions(recruiting);
         }
 
         public async void CheckAuthorization( bool useSavedToken = false ) {
