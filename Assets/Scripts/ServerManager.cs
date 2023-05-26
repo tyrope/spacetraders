@@ -70,7 +70,7 @@ namespace STCommander
         private static readonly RateLimit BurstLimit = new RateLimit(10, new TimeSpan(0, 0, 10));
 
         
-        private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } // DEBUG Log Verbosity switch lives here.
+        private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO Log Verbosity switch lives here.
         private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
 
         public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
@@ -161,12 +161,12 @@ namespace STCommander
                     try {
                         // Unwrap a potential ServerResponse.
                         ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
-                        if(sendResultsToLog != LogVerbosity.NONE || sendResultsToLog != LogVerbosity.ERROR_ONLY)
+                        if(sendResultsToLog != LogVerbosity.NONE && sendResultsToLog != LogVerbosity.ERROR_ONLY)
                             Log(method, endpoint, retstring, resp.meta?.ToString(), payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
-                        if(sendResultsToLog != LogVerbosity.NONE || sendResultsToLog != LogVerbosity.ERROR_ONLY)
+                        if(sendResultsToLog != LogVerbosity.NONE && sendResultsToLog != LogVerbosity.ERROR_ONLY)
                             Log(method, endpoint, retstring, payload: payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
                     }
