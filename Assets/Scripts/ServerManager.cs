@@ -126,7 +126,8 @@ namespace STCommander
                 } else if(BurstLimit.TryMakeRequest()) {
                     break;
                 }
-                await Task.Yield();
+                TimeSpan delay = (TrickleLimit.ResetTime < BurstLimit.ResetTime ? TrickleLimit.ResetTime : BurstLimit.ResetTime) - DateTime.Now;
+                await Task.Delay((int) Math.Ceiling(delay.TotalMilliseconds));
             }
             request.SendWebRequest();
 
