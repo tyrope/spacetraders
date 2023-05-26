@@ -40,8 +40,8 @@ namespace STCommander
             timeSinceLastUpdate = 0;
 
             UpdateAgentInfo();
-            UpdateFleetHUD();
-            UpdateContractHUD();
+            if(FleetTransform.gameObject.activeSelf) { UpdateFleetHUD(); }
+            if(ContractsTransform.gameObject.activeSelf) { UpdateContractHUD(); }
         }
 
         private void OnDestroy() {
