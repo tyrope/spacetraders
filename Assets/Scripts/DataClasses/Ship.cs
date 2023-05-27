@@ -27,35 +27,31 @@ namespace STCommander
                 public Waypoint departure;
                 public string departureTime;
                 public string arrival;
-
-                public DateTime ETD => DateTime.Parse(departureTime);
-                public DateTime ETA => DateTime.Parse(arrival);
-                public TimeSpan TotalFlightTime => ETA - ETD;
-                public TimeSpan CurrentFlightTime {
-                    get {
-                        if((ETA - DateTime.UtcNow).Ticks < 0) { return TimeSpan.Zero; } // Pre-flight.
-                        if(ETA < DateTime.UtcNow) { return TotalFlightTime; } // Post-flight.
-                        return ETA - DateTime.UtcNow;
-                    }
-                }
-                public TimeSpan RemainingFlightTime {
-                    get {
-                        if((DateTime.UtcNow - ETD).Ticks < 0) { return TimeSpan.Zero; } // Post-flight.
-                        return DateTime.UtcNow - ETD;
-                    }
-                }
-                public float FractionFlightComplete {
-                    get {
-                        if(TotalFlightTime.Ticks == 0) { return 1f; } // Null distance.
-                        return (float) (CurrentFlightTime / TotalFlightTime);
-                    }
-                }
+                internal DateTime ETA => DateTime.Parse(arrival);
+                internal TimeSpan TotalFlightTime => ETA - DateTime.Parse(departureTime);
             }
             public string systemSymbol;
             public string waypointSymbol;
             public Route route;
             public Status status;
             public FlightMode flightMode;
+            internal TimeSpan CurrentFlightTime {
+                get {
+                    if(route.ETA - DateTime.UtcNow < TimeSpan.Zero) { return TimeSpan.Zero; } // Pre-flight.
+                    if(route.ETA - DateTime.UtcNow > route.TotalFlightTime) { // Post-flight.
+                        return route.TotalFlightTime;
+                    }
+                    return route.ETA - DateTime.UtcNow;
+                }
+            }
+            public float FractionFlightComplete {
+                get {
+                    if(route.TotalFlightTime.Ticks == 0) { // Null distance.
+                        return 1f;
+                    }
+                    return (float) (CurrentFlightTime / route.TotalFlightTime);
+                }
+            }
 
             public override string ToString() {
                 switch(status) {
@@ -69,7 +65,7 @@ namespace STCommander
                         return "ERR_INVALID_NAV_STATUS";
                 }
             }
-    }
+        }
         public class Crew
         {
             public enum Rotation { STRICT, RELAXED };
