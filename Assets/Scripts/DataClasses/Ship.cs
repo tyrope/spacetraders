@@ -31,9 +31,25 @@ namespace STCommander
                 public DateTime ETD => DateTime.Parse(departureTime);
                 public DateTime ETA => DateTime.Parse(arrival);
                 public TimeSpan TotalFlightTime => ETA - ETD;
-                public TimeSpan CurrentFlightTime => DateTime.UtcNow - ETD;
-                public TimeSpan RemainingFlightTime => ETA - DateTime.UtcNow;
-                public float FractionFlightComplete => TotalFlightTime.Ticks > 0 ? (float) (CurrentFlightTime / TotalFlightTime) : 1f;
+                public TimeSpan CurrentFlightTime {
+                    get {
+                        if((ETA - DateTime.UtcNow).Ticks < 0) { return TimeSpan.Zero; } // Pre-flight.
+                        if(ETA < DateTime.UtcNow) { return TotalFlightTime; } // Post-flight.
+                        return ETA - DateTime.UtcNow;
+                    }
+                }
+                public TimeSpan RemainingFlightTime {
+                    get {
+                        if((DateTime.UtcNow - ETD).Ticks < 0) { return TimeSpan.Zero; } // Post-flight.
+                        return DateTime.UtcNow - ETD;
+                    }
+                }
+                public float FractionFlightComplete {
+                    get {
+                        if(TotalFlightTime.Ticks == 0) { return 1f; } // Null distance.
+                        return (float) (CurrentFlightTime / TotalFlightTime);
+                    }
+                }
             }
             public string systemSymbol;
             public string waypointSymbol;
