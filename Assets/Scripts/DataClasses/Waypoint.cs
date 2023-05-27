@@ -18,7 +18,21 @@ namespace STCommander
         public Trait[] traits;
         public Chart chart;
         public override string ToString() {
-            return $"{type} {symbol}@[{x},{y}]Operated by {faction}\nChart:{chart}\nChild bodies:{string.Concat<Orbital>(orbitals)}\nTraits:{string.Concat<Trait>(traits)}";
+            string retString = $"{type} {symbol}@[{x},{y}]";
+            if(faction != null) {
+                retString += $"\nOperated by {faction}";
+            }
+            if(chart != null) {
+                retString += $"\nChart:{chart}";
+            }
+            if(orbitals != null) {
+                retString += $"\nChild bodies:{string.Concat<Orbital>(orbitals)}";
+            }
+            if(traits != null) {
+                retString += $"\nTraits:{string.Concat<Trait>(traits)}";
+            }
+
+            return retString;
         }
     }
 }

@@ -33,14 +33,27 @@ namespace STCommander
                 public TimeSpan TotalFlightTime => ETA - ETD;
                 public TimeSpan CurrentFlightTime => DateTime.UtcNow - ETD;
                 public TimeSpan RemainingFlightTime => ETA - DateTime.UtcNow;
-                public float FractionFlightComplete => (float) (CurrentFlightTime / TotalFlightTime);
+                public float FractionFlightComplete => TotalFlightTime.Ticks > 0 ? (float) (CurrentFlightTime / TotalFlightTime) : 1f;
             }
             public string systemSymbol;
             public string waypointSymbol;
             public Route route;
             public Status status;
             public FlightMode flightMode;
-        }
+
+            public override string ToString() {
+                switch(status) {
+                    case Status.DOCKED:
+                        return $"DOCKED @ {waypointSymbol}";
+                    case Status.IN_ORBIT:
+                        return $"ORBITING {waypointSymbol}";
+                    case Status.IN_TRANSIT:
+                        return $"{route.departure}→{route.destination} ({route.ETA:HH:mm:ss})";
+                    default:
+                        return "ERR_INVALID_NAV_STATUS";
+                }
+            }
+    }
         public class Crew
         {
             public enum Rotation { STRICT, RELAXED };
@@ -133,10 +146,18 @@ namespace STCommander
                 public string name;
                 public string description;
                 public int units;
+
+                public override string ToString() {
+                    return $"{units}x {name}";
+                }
             }
             public int capacity;
             public int units;
             public CargoItem[] inventory;
+
+            public override string ToString() {
+                return $"{units / (float) capacity * 100f:n2}%\n{units}/{capacity}";
+            }
         }
         public class Fuel
         {
@@ -148,6 +169,10 @@ namespace STCommander
             public int current;
             public int capacity;
             public Consumed consumed;
+
+            public override string ToString() {
+                return $"{current / (float) capacity * 100f:n2}%\n{current}/{capacity}";
+            }
         }
         public string symbol;
         public Registration registration;
