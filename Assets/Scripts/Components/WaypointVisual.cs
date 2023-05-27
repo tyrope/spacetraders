@@ -87,7 +87,7 @@ namespace STCommander
                 } else {
                     // We gotta grab the Faction info.
                     List<Faction> lf;
-                    (res, lf) = await ServerManager.CachedRequest<List<Faction>>($"factions", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                    (res, lf) = await ServerManager.CachedRequest<List<Faction>>($"factions?limit=20", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                     if(res.result != ServerResult.ResultType.SUCCESS) {
                         Debug.LogError($"WaypointVisual:SetLabelInfo() - Failed to fetch charter info. Display symbol ({waypoint.chart.submittedBy}) instead of name.");
                         tempValue = "Charted by:\n" + waypoint.faction.symbol;
