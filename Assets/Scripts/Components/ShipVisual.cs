@@ -112,11 +112,10 @@ namespace STCommander
 
                             if(ship.nav.status == Ship.Navigation.Status.IN_ORBIT
                                && mapManager.SelectedWaypoint != null
-                               && mapManager.SelectedWaypoint.symbol != ship.nav.waypointSymbol) {
+                               && mapManager.SelectedWaypoint.symbol == ship.nav.waypointSymbol) {
                                 // We're orbiting around the currently selected waypoint; actually show an orbit.
                                 transform.position += OrbitalPosition;
                                 transform.Rotate(Vector3.up, OrbitalAngle);
-                                return;
                             }
                             // Park ourselves *above* the waypoint we're at.
                             transform.position += Vector3.up * 0.5f;
