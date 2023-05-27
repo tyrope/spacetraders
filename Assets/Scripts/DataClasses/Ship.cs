@@ -1,4 +1,6 @@
-﻿namespace STCommander
+﻿using System;
+
+namespace STCommander
 {
     public class Ship
     {
@@ -25,6 +27,13 @@
                 public Waypoint departure;
                 public string departureTime;
                 public string arrival;
+
+                public DateTime ETD => DateTime.Parse(departureTime);
+                public DateTime ETA => DateTime.Parse(arrival);
+                public TimeSpan TotalFlightTime => ETA - ETD;
+                public TimeSpan CurrentFlightTime => DateTime.UtcNow - ETD;
+                public TimeSpan RemainingFlightTime => ETA - DateTime.UtcNow;
+                public float FractionFlightComplete => (float) (CurrentFlightTime / TotalFlightTime);
             }
             public string systemSymbol;
             public string waypointSymbol;

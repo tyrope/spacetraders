@@ -26,7 +26,7 @@ namespace STCommander
         // Start is called before the first frame update
         void Start() {
             Instantiate(models[(int) waypoint.type], transform.Find("Visuals"));
-            gameObject.name = $"({waypoint.x},{waypoint.y}){WaypointSymbolEnd}";
+            gameObject.name = waypoint.symbol;
             SetLabelInfo();
 
             // Are we orbiting the selected object, or another waypoint?
@@ -141,7 +141,7 @@ namespace STCommander
                     if(wp.orbitals != null) {
                         for(int i = 0; i < wp.orbitals.Length; i++) {
                             if(wp.orbitals[i].symbol == waypoint.symbol) {
-                                parentOrbit = transform.parent.Find($"({wp.x},{wp.y}){wp.symbol.Split('-')[2]}");
+                                parentOrbit = transform.parent.Find(wp.symbol);
                                 SatelliteIndex = i;
                                 return;
                             }
@@ -157,7 +157,7 @@ namespace STCommander
                 for(int i = 0; i < MapManager.SelectedWaypoint.orbitals.Length; i++) {
                     o = MapManager.SelectedWaypoint.orbitals[i];
                     if(o.symbol == waypoint.symbol) {
-                        parentOrbit = transform.parent.Find($"({waypoint.x},{waypoint.y}){MapManager.SelectedWaypoint.symbol.Split('-')[2]}");
+                        parentOrbit = transform.parent.Find(MapManager.SelectedWaypoint.symbol);
                         SatelliteIndex = i;
                         break;
                     }

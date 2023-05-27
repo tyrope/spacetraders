@@ -38,7 +38,6 @@ namespace STCommander
             }
             public Error error;
         }
-
         private class RateLimit
         {
             public DateTime ResetTime { get; private set; }
@@ -80,7 +79,7 @@ namespace STCommander
 
         
         private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO Log Verbosity switch lives here.
-        private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
+        private static readonly LogVerbosity sendResultsToLog = LogVerbosity.API_ONLY;
 
         public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
             // Remove any starting or trailing slashes.

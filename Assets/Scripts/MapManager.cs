@@ -2,10 +2,12 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Threading;
+using System;
 
 namespace STCommander
 {
-    public class MapManager : MonoBehaviour {
+    public class MapManager : MonoBehaviour
+    {
         public GameObject SystemPrefab;
         public GameObject WaypointPrefab;
         public GameObject shipPrefab;
@@ -14,8 +16,8 @@ namespace STCommander
         public SolarSystem SelectedSystem { get; private set; }
         public Waypoint SelectedWaypoint { get; private set; }
 
-        private Transform SystemContainer;
-        private Transform WaypointContainer;
+        public Transform SystemContainer { get; private set; }
+        public Transform WaypointContainer { get; private set; }
         private Transform ShipContainer;
         private List<SolarSystem> solarSystems;
         private Vector2 mapCenter = Vector2.zero;
@@ -23,7 +25,6 @@ namespace STCommander
         private int displayedSystems;
 
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
-        private readonly Dictionary<string, GameObject> shipObjects = new Dictionary<string, GameObject>();
         private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         void Start() {
@@ -34,7 +35,7 @@ namespace STCommander
             WaypointContainer.position = Vector3.zero;
             WaypointContainer.parent = gameObject.transform.parent;
             CreateMap();
-            LoadShips();
+            SpawnShips();
         }
         public void ParseInputs() {
             // TODO Deselect using in-world stuff, not rightclick.
@@ -82,10 +83,141 @@ namespace STCommander
 
         public Vector2 GetCenter() => mapCenter;
 
+        public float GetMapScale() {
+            if(SelectedSystem != null) {
+                float maxMagnitude = 0f;
+                foreach(Waypoint wp in SelectedSystem.waypoints) {
+                    float mag = new Vector2(wp.x, wp.y).magnitude;
+                    if(mag > maxMagnitude) { maxMagnitude = mag; }
+                }
+                return 2.0f / maxMagnitude;
+            } else {
+                if(SelectedWaypoint == null) {
+                    Debug.LogError("Trying to grab a scale without anything selected?");
+                    return 0.75f;
+                } else if(SelectedWaypoint.orbitals == null) {
+                    Debug.LogError("We've selected a waypoint with a null orbitals array.");
+                    return 0.75f;
+                }
+                return 1.5f / (float) (2f + SelectedWaypoint.orbitals.Length);
+            }
+        }
+
+        private (Vector2, Vector2) GetMapBounds() {
+            Vector2 minBounds = new Vector2(zoom * -1 + mapCenter.x, zoom * -1 + mapCenter.y);
+            Vector2 maxBounds = new Vector2(zoom + mapCenter.x, zoom + mapCenter.y);
+            return (minBounds, maxBounds);
+        }
+
+        public Vector3 GetWorldSpaceFromCoords( float x, float y ) {
+            return GetWorldSpaceFromCoords(new Vector2(x, y));
+        }
+
+        public Vector3 GetWorldSpaceFromCoords( Vector2 position ) {
+            (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
+            if(minBounds.x > position.x || position.x > maxBounds.x || minBounds.y > position.y || position.y > maxBounds.y) {
+                throw new ArgumentOutOfRangeException("position", "This location is outside of the map.");
+            }
+
+            float xPos = position.x + mapCenter.x * -1;
+            float yPos = position.y + mapCenter.y * -1;
+            return new Vector3(xPos, 0, yPos) / GetZoom() * 2f;
+        }
+
+        private async void CreateMap( int retries = 0 ) {
+            // Load the galaxy
+            ServerResult result;
+            (result, solarSystems) = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            if(result.result != ServerResult.ResultType.SUCCESS) {
+                Debug.LogError($"Failed to load systems.json\n{result}");
+                if(retries < 5) {
+                    await Task.Delay(1000);
+                    if(AsyncCancelToken.IsCancellationRequested) { return; }
+                    CreateMap(retries + 1);
+                    return;
+                } else {
+                    Debug.LogError("5 failed attempts to load systems.json, something is seriously wrong.");
+                    return;
+                }
+            }
+
+            // Center on the Player HQ.
+            await CenterMapOnHQ();
+            MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
+
+            // Create the game objects.
+            GameObject go;
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Reset();
+            stopwatch.Start();
+            (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
+            foreach(SolarSystem sys in solarSystems) {
+                // Skip out-of-bounds systems.
+                if(sys.x < minBounds.x || sys.x > maxBounds.x || sys.y < minBounds.y || sys.y > maxBounds.y) { continue; }
+
+                displayedSystems++;
+                go = SpawnSystem(sys);
+                solarSystemObjects.Add(sys, go);
+                if(stopwatch.ElapsedMilliseconds > 16.666f) { // 1000 / 60, rounded down.
+                    stopwatch.Stop();
+                    stopwatch.Reset();
+                    await Task.Yield();
+                    if(AsyncCancelToken.IsCancellationRequested) { return; }
+                    stopwatch.Start();
+                }
+            }
+            stopwatch.Stop();
+            Debug.Log($"Map loaded! {displayedSystems} within range.");
+        }
+
+        private void RefreshMap() {
+            (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
+            MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
+
+            // Go through each solar system to check the bounds..
+            foreach(SolarSystem sys in solarSystems) {
+                if(sys.x < minBounds.x || sys.x > maxBounds.x || sys.y < minBounds.y || sys.y > maxBounds.y) {
+                    // Out of bounds.
+                    if(solarSystemObjects.ContainsKey(sys)) {
+                        // Despawn
+                        GameObject.Destroy(solarSystemObjects[sys]);
+                        solarSystemObjects.Remove(sys);
+                        displayedSystems--;
+                    }
+                } else {
+                    // In bounds.
+                    if(solarSystemObjects.ContainsKey(sys) == false) {
+                        // Didn't exist, spawn now.
+                        solarSystemObjects.Add(sys, SpawnSystem(sys));
+                        displayedSystems++;
+                    } else {
+                        solarSystemObjects[sys].GetComponent<SolarSystemVisual>().SetPosition();
+                    }
+                }
+            }
+        }
+
+        private async Task CenterMapOnHQ() {
+            // Center on the Player HQ.
+            (ServerResult result, AgentInfo agent) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            if(result.result == ServerResult.ResultType.SUCCESS) {
+                // Query the HQ waypoint for system name.
+                SolarSystem hq;
+                string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
+                (result, hq) = await ServerManager.CachedRequest<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
+                mapCenter = new Vector2(hq.x, hq.y);
+            }
+
+            zoom = 500;
+        }
+
         public async void SelectSystem( SolarSystem sys ) {
             // Selecting the already selected system breaks things, so don't be stupid.
             if(sys == SelectedSystem) { return; }
-
 
             // Deselect
             if(SelectedSystem != null && solarSystemObjects.ContainsKey(SelectedSystem)) {
@@ -97,6 +229,7 @@ namespace STCommander
                     Destroy(t.gameObject);
                 }
             }
+
             if(sys == null) {
                 SelectedSystem = null;
                 return;
@@ -176,26 +309,6 @@ namespace STCommander
                 SpawnWaypoint(orbital, WaypointContainer);
             }
         }
-        public float GetMapScale() {
-            if(SelectedSystem != null) {
-                float maxMagnitude = 0f;
-                foreach(Waypoint wp in SelectedSystem.waypoints) {
-                    float mag = new Vector2(wp.x, wp.y).magnitude;
-                    if(mag > maxMagnitude) { maxMagnitude = mag; }
-                }
-                return 2.0f / maxMagnitude;
-            } else {
-                if(SelectedWaypoint == null) {
-                    Debug.LogError("Trying to grab a scale without anything selected?");
-                    return 0.75f;
-                } else if(SelectedWaypoint.orbitals == null) {
-                    Debug.LogError("We've selected a waypoint with a null orbitals array.");
-                    return 0.75f;
-                }
-                return 1.5f / (float) (2f + SelectedWaypoint.orbitals.Length);
-            }
-        }
-
         public void Deselect() {
             if(SelectedWaypoint != null) {
                 SelectWaypoint(null);
@@ -204,144 +317,6 @@ namespace STCommander
             }
         }
 
-        private void RefreshMap() {
-            (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
-            MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
-            foreach(SolarSystem sys in solarSystems) {
-                // Go through each solar system to check the bounds..
-                if(sys.x < minBounds.x || sys.x > maxBounds.x || sys.y < minBounds.y || sys.y > maxBounds.y) {
-                    // Out of bounds.
-                    if(solarSystemObjects.ContainsKey(sys)) {
-                        // Despawn
-                        GameObject.Destroy(solarSystemObjects[sys]);
-                        solarSystemObjects.Remove(sys);
-                        displayedSystems--;
-                    }
-                } else {
-                    // In bounds.
-                    if(solarSystemObjects.ContainsKey(sys) == false) {
-                        // Didn't exist, spawn now.
-                        solarSystemObjects.Add(sys, SpawnSystem(sys));
-                        displayedSystems++;
-                    } else {
-                        solarSystemObjects[sys].GetComponent<SolarSystemVisual>().SetPosition();
-                    }
-                }
-            }
-        }
-
-        private async void LoadShips() {
-            ShipContainer = new GameObject("ShipContainer").transform;
-            ShipContainer.position = Vector3.zero;
-            ShipContainer.parent = gameObject.transform.parent;
-
-            GameObject go;
-            ShipVisual sv;
-            SolarSystem sys;
-            Ship ship;
-            Vector3 position;
-            ServerResult res;
-
-            if(ShipManager.Ships.Count == 0) {
-                ShipManager.LoadShips();
-            }
-            foreach(string shipId in ShipManager.Ships) {
-                Debug.Log($"Loading ship {shipId}");
-                ship = await ShipManager.GetShip(shipId);
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
-                switch(ship.nav.status) {
-                    case Ship.Navigation.Status.IN_TRANSIT:
-                        Debug.Log("Not rendering in-transhit ships yet...");
-                        break;
-                    default: // Non-moving ships.
-                        // Get our location.
-                        (res, sys) = await ServerManager.CachedRequest<SolarSystem>($"systems/{ship.nav.systemSymbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                        if(AsyncCancelToken.IsCancellationRequested) { return; }
-
-                        // Where do we render this ship?
-                        try {
-                            position = GetWorldSpaceFromCoords(sys.x, sys.y);
-                        } catch(System.ArgumentOutOfRangeException) {
-                            Debug.Log($"{ship.symbol} is off map {ship.nav.systemSymbol}@({sys.x},{sys.y})");
-                            continue; // This ship is off-map.
-                        }
-                        go = Instantiate(shipPrefab, position, Quaternion.identity, ShipContainer);
-                        go.name = ship.symbol;
-                        shipObjects.Add(ship.symbol, go);
-                        sv = go.GetComponent<ShipVisual>();
-                        sv.ship = ship;
-                        break;
-                }
-            }
-        }
-
-        // Create the world map as we know it.
-        private async void CreateMap( int retries = 0 ) {
-            // Load the galaxy
-            ServerResult result;
-            (result, solarSystems) = await ServerManager.CachedRequest<List<SolarSystem>>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
-            if(result.result != ServerResult.ResultType.SUCCESS) {
-                Debug.LogError($"Failed to load systems.json\n{result}");
-                if(retries < 5) {
-                    await Task.Delay(1000);
-                    if(AsyncCancelToken.IsCancellationRequested) { return; }
-                    CreateMap(retries + 1);
-                    return;
-                } else {
-                    Debug.LogError("5 failed attempts to load systems.json, something is seriously wrong.");
-                    return;
-                }
-            }
-
-            // Center on the Player HQ.
-            await CenterMapOnHQ();
-            MapLegend.text = $"[{Mathf.CeilToInt(mapCenter.x)},{Mathf.CeilToInt(mapCenter.y)}]\n1:{zoom:n0}";
-
-            // Create the game objects.
-            GameObject go;
-            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-            stopwatch.Reset();
-            stopwatch.Start();
-            (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
-            foreach(SolarSystem sys in solarSystems) {
-                // Skip out-of-bounds systems.
-                if(sys.x < minBounds.x || sys.x > maxBounds.x || sys.y < minBounds.y || sys.y > maxBounds.y) { continue; }
-
-                displayedSystems++;
-                go = SpawnSystem(sys);
-                solarSystemObjects.Add(sys, go);
-                if(stopwatch.ElapsedMilliseconds > 16.666f) { // 1000 / 60, rounded down.
-                    stopwatch.Stop();
-                    stopwatch.Reset();
-                    await Task.Yield();
-                    if(AsyncCancelToken.IsCancellationRequested) { return; }
-                    stopwatch.Start();
-                }
-            }
-            stopwatch.Stop();
-            Debug.Log($"Map loaded! {displayedSystems} within range.");
-        }
-
-        // Center the map on the Player HQ
-        private async Task CenterMapOnHQ() {
-            // Center on the Player HQ.
-            (ServerResult result, AgentInfo agent) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
-            if(result.result == ServerResult.ResultType.SUCCESS) {
-                // Query the HQ waypoint for system name.
-                SolarSystem hq;
-                string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
-                (result, hq) = await ServerManager.CachedRequest<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
-                if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
-                mapCenter = new Vector2(hq.x, hq.y);
-            }
-
-            zoom = 500;
-        }
-
-        // Spawn a new known system.
         private GameObject SpawnSystem( SolarSystem sys ) {
             GameObject system = Instantiate(SystemPrefab);
             system.transform.parent = SystemContainer;
@@ -365,25 +340,22 @@ namespace STCommander
             return go;
         }
 
-        private (Vector2, Vector2) GetMapBounds() {
-            Vector2 minBounds = new Vector2(zoom * -1 + mapCenter.x, zoom * -1 + mapCenter.y);
-            Vector2 maxBounds = new Vector2(zoom + mapCenter.x, zoom + mapCenter.y);
-            return (minBounds, maxBounds);
-        }
+        private async void SpawnShips() {
+            ShipContainer = new GameObject("ShipContainer").transform;
+            ShipContainer.position = Vector3.zero;
+            ShipContainer.parent = gameObject.transform.parent;
 
-        public Vector3 GetWorldSpaceFromCoords( float x, float y ) {
-            return GetWorldSpaceFromCoords(new Vector2(x, y));
-        }
-
-        public Vector3 GetWorldSpaceFromCoords( Vector2 position ) {
-            (Vector2 minBounds, Vector2 maxBounds) = GetMapBounds();
-            if(minBounds.x > position.x || position.x > maxBounds.x || minBounds.y > position.y || position.y > maxBounds.y) {
-                throw new System.ArgumentOutOfRangeException("position", "This location is outside of the map.");
+            while(ShipManager.Ships.Count == 0) {
+                // Give the ShipManager a frame to fill it's ship list.
+                await Task.Yield();
             }
-
-            float xPos = position.x + mapCenter.x * -1;
-            float yPos = position.y + mapCenter.y * -1;
-            return new Vector3(xPos, 0, yPos) / GetZoom() * 2f;
+            foreach(string ship in ShipManager.Ships) {
+                GameObject go = Instantiate(shipPrefab, Vector3.zero, Quaternion.identity, ShipContainer);
+                ShipVisual sv = go.GetComponentInChildren<ShipVisual>();
+                sv.mapManager = this;
+                sv.ship = await ShipManager.GetShip(ship);
+                go.SetActive(true);
+            }
         }
     }
 }

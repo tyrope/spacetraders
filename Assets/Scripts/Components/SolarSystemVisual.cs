@@ -23,7 +23,7 @@ namespace STCommander
             Transform visuals = transform.Find("Visuals");
             // Add always-on stuff.
             Instantiate(models[(int) system.type], visuals);
-            gameObject.name = $"({system.x},{system.y}){system.symbol}";
+            gameObject.name = system.symbol;
             SetPosition();
 
             // Flat label (deselected) stuff.

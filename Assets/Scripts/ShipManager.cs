@@ -8,9 +8,6 @@ namespace STCommander
     public class ShipManager : MonoBehaviour
     {
         public static readonly List<string> Ships = new List<string>();
-        public delegate Task asyncShipDelegate( Ship ship );
-        private static asyncShipDelegate OnShipMovement;
-
 
         private static readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
@@ -41,16 +38,6 @@ namespace STCommander
             if(AsyncCancelToken.IsCancellationRequested) { return null; }
             if(result.result != ServerResult.ResultType.SUCCESS) { return null; }
             return ship;
-        }
-
-        public static void RegisterShipMovementEvent(asyncShipDelegate del ) {
-            OnShipMovement += del;
-        }
-
-        public static void UnregisterShipMovementEvent(asyncShipDelegate del ) {
-            try {
-                OnShipMovement -= del;
-            } catch { } // If it's not there oh well.
         }
     }
 }
