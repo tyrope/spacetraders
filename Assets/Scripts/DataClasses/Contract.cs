@@ -58,6 +58,6 @@ namespace STCommander
             return ContractStatus.ACCEPTED;
         }
 
-        public override string ToString() => $"{id}\n{GetStatus()} {type} contract issued by {factionSymbol}: {terms}.";
+        public override string ToString() => $"{id}\n{GetStatus()} {type} contract issued by {factionSymbol}:\n{terms}.";
     }
 }
