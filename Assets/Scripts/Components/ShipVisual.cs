@@ -5,26 +5,25 @@ using UnityEngine;
 
 namespace STCommander
 {
-    public class ShipVisual : MonoBehaviour
+    public class ShipVisual : OrbitalVisual
     {
-        public MapManager mapManager;
         public Ship ship;
         private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         private float TimeSinceRefresh = 0f;
-        private float OrbitTime = 0f;
-        private float OrbitalAngle => (OrbitTime / 1538.18f) * 360f;
-        private Vector3 OrbitalPosition => new Vector3(Mathf.Sin(OrbitalAngle), 0, Mathf.Cos(OrbitalAngle));
 
         // Start is called before the first frame update
-        void Start() {
-            OrbitTime = (float) (DateTime.UtcNow - DateTime.MinValue).TotalSeconds;
+        protected override void Start() {
             transform.gameObject.name = ship.symbol;
             transform.gameObject.GetComponentInChildren<TMPro.TMP_Text>().text = ship.registration.name;
+
+            OrbitalAltitude = 1f;
+            base.Start();
         }
 
         // Update is called once per frame
-        private async void Update() {
+        protected override async void Update() {
+            // Update ship info.
             TimeSinceRefresh += Time.deltaTime;
             if(TimeSinceRefresh > 1f) {
                 TimeSinceRefresh %= 1f;
@@ -34,8 +33,9 @@ namespace STCommander
                     ship = sh;
                 }
             }
-            OrbitTime += Time.deltaTime;
-            OrbitTime %= 1538.18f;
+
+            // Deal with positioning.
+            base.Update();
             await SetPosition();
         }
         void OnDestroy() {
@@ -107,12 +107,19 @@ namespace STCommander
                     foreach(Transform wpTrans in parentContainer) {
                         if(wpTrans.gameObject.GetComponent<WaypointVisual>().waypoint.symbol == ship.nav.waypointSymbol) {
                             transform.localScale = Vector3.one;
-                            transform.position = new Vector3(wpTrans.position.x, 0.5f, wpTrans.position.z);
+                            transform.position = new Vector3(wpTrans.position.x, 0, wpTrans.position.z);
                             transform.rotation = Quaternion.identity;
-                            if(ship.nav.status == Ship.Navigation.Status.IN_ORBIT) {
-                                transform.position += OrbitalPosition * mapManager.GetMapScale();
-                                transform.Rotate(Vector3.up, OrbitalAngle + 90f);
+
+                            if(ship.nav.status == Ship.Navigation.Status.IN_ORBIT
+                               && mapManager.SelectedWaypoint != null
+                               && mapManager.SelectedWaypoint.symbol != ship.nav.waypointSymbol) {
+                                // We're orbiting around the currently selected waypoint; actually show an orbit.
+                                transform.position += OrbitalPosition;
+                                transform.Rotate(Vector3.up, OrbitalAngle);
+                                return;
                             }
+                            // Park ourselves *above* the waypoint we're at.
+                            transform.position += Vector3.up * 0.5f;
                             return;
                         }
                     }

@@ -6,9 +6,8 @@ using UnityEngine;
 
 namespace STCommander
 {
-    public class WaypointVisual : MonoBehaviour
+    public class WaypointVisual : OrbitalVisual
     {
-        public MapManager MapManager;
         public GameObject[] models;
         public GameObject DeselectedLabel;
         public Transform SelectedLabel;
@@ -18,39 +17,35 @@ namespace STCommander
         private int SatelliteIndex = 0;
         private string WaypointSymbolEnd => waypoint.symbol.Split('-')[2];
 
-        private float OrbitalAltitude;
-        private float OrbitTime;
         private bool IsSelected = false;
         private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
+        protected override float OrbitalPeriod => parentOrbit == null ? base.OrbitalPeriod : base.OrbitalPeriod * 2f;
+
         // Start is called before the first frame update
-        void Start() {
-            Instantiate(models[(int) waypoint.type], transform.Find("Visuals"));
+        protected override void Start() {
             gameObject.name = waypoint.symbol;
+            Instantiate(models[(int) waypoint.type], transform.Find("Visuals"));
             SetLabelInfo();
 
             // Are we orbiting the selected object, or another waypoint?
             SetParentOrbit();
-
-            float nowInSeconds = (float) DateTime.Now.Subtract(DateTime.MinValue).TotalSeconds;
-
             if(parentOrbit == null) {
                 OrbitalAltitude = new Vector2(waypoint.x, waypoint.y).magnitude;
             } else {
                 OrbitalAltitude = 3f + SatelliteIndex;
             }
-            OrbitTime = nowInSeconds % GetOrbitalPeriod();
+            base.Start();
             SetPosition();
         }
 
         void OnMouseDown() {
             Debug.Log("Selected waypoint: " + waypoint.symbol);
-            MapManager.SelectWaypoint(waypoint);
+            mapManager.SelectWaypoint(waypoint);
         }
 
-        private void Update() {
-            OrbitTime += Time.deltaTime;
-            if(OrbitTime >= GetOrbitalPeriod()) { OrbitTime %= GetOrbitalPeriod(); }
+        protected override void Update() {
+            base.Update();
             SetPosition();
         }
 
@@ -104,7 +99,7 @@ namespace STCommander
                                 break;
                             }
                         }
-                        tempValue = tempValue != null ? tempValue : $"Charted by:\n{waypoint.chart.submittedBy}";
+                        tempValue ??= $"Charted by:\n{waypoint.chart.submittedBy}";
                     }
                 }
             }
@@ -135,9 +130,9 @@ namespace STCommander
         }
 
         private void SetParentOrbit() {
-            if(MapManager.SelectedSystem != null) {
+            if(mapManager.SelectedSystem != null) {
                 // Main star is the middle point.
-                foreach(Waypoint wp in MapManager.SelectedSystem.waypoints) {
+                foreach(Waypoint wp in mapManager.SelectedSystem.waypoints) {
                     if(wp.orbitals != null) {
                         for(int i = 0; i < wp.orbitals.Length; i++) {
                             if(wp.orbitals[i].symbol == waypoint.symbol) {
@@ -150,14 +145,14 @@ namespace STCommander
                 }
             } else {
                 // A waypoint is the middle point.
-                if(MapManager.SelectedWaypoint == waypoint) {
+                if(mapManager.SelectedWaypoint == waypoint) {
                     return; // We are the middle point.
                 }
                 Waypoint.Orbital o;
-                for(int i = 0; i < MapManager.SelectedWaypoint.orbitals.Length; i++) {
-                    o = MapManager.SelectedWaypoint.orbitals[i];
+                for(int i = 0; i < mapManager.SelectedWaypoint.orbitals.Length; i++) {
+                    o = mapManager.SelectedWaypoint.orbitals[i];
                     if(o.symbol == waypoint.symbol) {
-                        parentOrbit = transform.parent.Find(MapManager.SelectedWaypoint.symbol);
+                        parentOrbit = transform.parent.Find(mapManager.SelectedWaypoint.symbol);
                         SatelliteIndex = i;
                         break;
                     }
@@ -169,23 +164,18 @@ namespace STCommander
             if(IsSelected) {
                 return; // We're the middle point; don't orbit.
             }
-            float rot = (OrbitTime / GetOrbitalPeriod()) * 360f;
-            float scaledAltitude = OrbitalAltitude * MapManager.GetMapScale();
+
             if(parentOrbit == null) {
                 // We're orbiting the main star; align around 0.
-                if(float.IsNaN(scaledAltitude) || float.IsNaN(rot)) {
-                    Debug.LogError($"Trying to set a position of a waypoint to NaN.\n{waypoint.symbol} Time: {OrbitTime}/{GetOrbitalPeriod()} - Alt: {OrbitalAltitude} * {MapManager.GetMapScale()}.");
+                if(float.IsNaN(OrbitalAltitude) || float.IsNaN(OrbitalAngle)) {
+                    Debug.LogError($"Trying to set a position of a waypoint to NaN.\n{waypoint.symbol} Time: {OrbitTime}/{OrbitalPeriod} - Alt: {OrbitalAltitude}.");
                     return;
                 }
-                transform.position = new Vector3(scaledAltitude * Mathf.Sin(rot), 0, scaledAltitude * Mathf.Cos(rot));
+                transform.position = OrbitalPosition;
             } else {
                 // We're orbiting another body; align around it.
-                transform.position = parentOrbit.position +
-                    new Vector3(scaledAltitude * Mathf.Sin(rot), 0, scaledAltitude * Mathf.Cos(rot));
+                transform.position = parentOrbit.position + OrbitalPosition;
             }
-        }
-        private float GetOrbitalPeriod() {
-            return Mathf.Sqrt(4 * Mathf.Pow(Mathf.PI, 2) * Mathf.Pow(OrbitalAltitude * MapManager.GetMapScale(), 3) / 6.67430e-11f) / (parentOrbit == null ? 500f : 250f);
         }
     }
 }

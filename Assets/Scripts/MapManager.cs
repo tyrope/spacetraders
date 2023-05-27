@@ -328,7 +328,7 @@ namespace STCommander
             go.transform.parent = parent;
 
             wpvisual.waypoint = waypoint;
-            wpvisual.MapManager = this;
+            wpvisual.mapManager = this;
 
             go.SetActive(true);
             return go;
