@@ -82,27 +82,9 @@ namespace STCommander
             if(AsyncCancelToken.IsCancellationRequested) { return; }
             trans.Find("Registration").GetComponent<TMP_Text>().text = ship.registration.name;
             trans.Find("Role").GetComponent<TMP_Text>().text = ship.registration.role.ToString();
-            trans.Find("Cargo").GetComponent<TMP_Text>().text = $"Cargo: {ship.cargo.units / (float) ship.cargo.capacity * 100f:n2}%\n{ship.cargo.units}/{ship.cargo.capacity}";
-            trans.Find("Fuel").GetComponent<TMP_Text>().text = $"Fuel: {ship.fuel.current / (float) ship.fuel.capacity * 100f:n2}%\n{ship.fuel.current}/{ship.fuel.capacity}";
-
-            string navString;
-            switch(ship.nav.status) {
-                case Ship.Navigation.Status.DOCKED:
-                    navString = $"DOCKED @ {ship.nav.waypointSymbol}";
-                    break;
-                case Ship.Navigation.Status.IN_ORBIT:
-                    navString = $"ORBITING {ship.nav.waypointSymbol}";
-                    break;
-                case Ship.Navigation.Status.IN_TRANSIT:
-                    DateTime ArrivalTime = DateTime.Parse(ship.nav.route.arrival);
-                    string ETA = (ArrivalTime - DateTime.Now).ToString("HH:mm:ss");
-                    navString = $"{ship.nav.route.departure}→{ship.nav.route.destination} ({ETA})";
-                    break;
-                default:
-                    navString = "ERR_INVALID_NAV_STATUS";
-                    break;
-            }
-            trans.Find("Navigation").GetComponent<TMP_Text>().text = navString;
+            trans.Find("Cargo").GetComponent<TMP_Text>().text = $"Cargo: {ship.cargo}";
+            trans.Find("Fuel").GetComponent<TMP_Text>().text = $"Fuel: {ship.fuel}";
+            trans.Find("Navigation").GetComponent<TMP_Text>().text = ship.nav.ToString();
         }
 
         private async void UpdateContractHUD() {
