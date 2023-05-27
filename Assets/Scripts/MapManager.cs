@@ -91,16 +91,10 @@ namespace STCommander
                     if(mag > maxMagnitude) { maxMagnitude = mag; }
                 }
                 return 2.0f / maxMagnitude;
-            } else {
-                if(SelectedWaypoint == null) {
-                    Debug.LogError("Trying to grab a scale without anything selected?");
-                    return 0.75f;
-                } else if(SelectedWaypoint.orbitals == null) {
-                    Debug.LogError("We've selected a waypoint with a null orbitals array.");
-                    return 0.75f;
-                }
-                return 1.5f / (float) (2f + SelectedWaypoint.orbitals.Length);
+            } else if(SelectedWaypoint == null || SelectedWaypoint.orbitals == null) {
+                return 0.75f;
             }
+            return 1.5f / (float) (2f + SelectedWaypoint.orbitals.Length);
         }
 
         private (Vector2, Vector2) GetMapBounds() {
