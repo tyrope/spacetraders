@@ -25,9 +25,9 @@ namespace STCommander
 
         public async Task<bool> SaveToCache() {
             return await DatabaseManager.instance.WriteQuery(
-                $"REPLACE INTO Agent (accountId, symbol, headquarters, credits, startingFaction, lastEdited) VALUES ('"
-                + $"{accountId}', '{symbol}', '{headquarters}', {credits}, '{StartingFaction}', {(DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds})"
-                ) > 0;
+                $"INSERT INTO Agent (accountId, symbol, headquarters, credits, startingFaction, lastEdited) VALUES ('"
+                + $"{accountId}', '{symbol}', '{headquarters}', {credits}, '{StartingFaction}', unixepoch(now))"
+                + "ON CONFLICT(symbol) DO UPDATE SET credits=excluded.credits, lastEdited=excluded.lastEdited;") > 0;
         }
 
         private Agent( List<object> fields ) {

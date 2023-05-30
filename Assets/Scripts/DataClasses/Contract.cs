@@ -10,17 +10,17 @@ namespace STCommander
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
             List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT Contract.id, Contract.factionSymbol, Contract.type, Contract.accepted, Contract.fulfilled, "
-                + "Contract.deadlineToAccept, ContractTerms.deadline, ContractPayment.onAccepted, ContractPayment.onFulfilled FROM Contract, ContractTerms, ContractPayment WHERE "
-                + "Contract.terms=ContractTerms.rowid AND Terms.payment=ContractPayment.rowid AND Contract.lastEdited<" + highestUnixTimestamp);
+                + "Contract.deadlineToAccept, ContractTerms.rowid, ContractTerms.deadline, ContractPayment.rowid, ContractPayment.onAccepted, ContractPayment.onFulfilled FROM Contract, ContractTerms, ContractPayment "
+                + "WHERE Contract.terms=ContractTerms.rowid AND ContractTerms.payment=ContractPayment.rowid AND Contract.lastEdited<" + highestUnixTimestamp);
             if(contracts.Count == 0) {
-                Debug.Log($"IDataClass::LoadFromCache() -- No results.");
+                Debug.Log($"Contract::LoadFromCache() -- No results.");
                 return null;
             }
             List<IDataClass> ret = new List<IDataClass>();
             List<List<object>> deliverGoods;
             foreach(List<object> p in contracts) {
-                deliverGoods = await DatabaseManager.instance.SelectQuery("SELECT ContractDeliverGood.rowid, ContractDeliverGood.tradeSymbol, ContractDeliverGood.destinationSymbol, ContractDeliverGood.unitsRequired, "
-                    + "ContractDeliverGood.unitsFulfilled FROM Contract, ContractDeliverGood, ContractDeliverGood_ContractTerms_relationship WHERE"
+                deliverGoods = await DatabaseManager.instance.SelectQuery("SELECT ContractDeliverGood.rowid, ContractDeliverGood.tradeSymbol, ContractDeliverGood.destinationSymbol, "
+                    + "ContractDeliverGood.unitsRequired, ContractDeliverGood.unitsFulfilled FROM Contract, ContractDeliverGood, ContractDeliverGood_ContractTerms_relationship WHERE"
                     + " ContractDeliverGood_ContractTerms_relationship.good = ContractDeliverGood.rowid AND ContractDeliverGood_ContractTerms_relationship.terms = Contract.terms AND Contract.id=" + p[0]);
                 ret.Add(new Contract(p, deliverGoods));
             }
@@ -28,16 +28,32 @@ namespace STCommander
         }
 
         public async Task<bool> SaveToCache() {
-            string query = "BEGIN TRANSACTION;"; // This is going to be a big update. Do not let anybody else interfere.
+            string query = "BEGIN TRANSACTION;\n"; // This is going to be a big update. Do not let anybody else interfere.
 
             // First, our delivery goods.
-            query += $"REPLACE INTO ContractDeliverGood (rowid, tradeSymbol, destinationSymbol, unitsRequired, unitsFulfilled) VALUES";
+            query += "INSERT INTO ContractDeliverGood (rowid, tradeSymbol, destinationSymbol, unitsRequired, unitsFulfilled) VALUES ";
             foreach(Terms.Deliver good in terms.deliver) {
-                query += $"({good.rowid}, {good.tradeSymbol}, {good.destinationSymbol}, {good.unitsRequired}, {good.unitsFulfilled}),";
+                query += $"({good.rowid}, '{good.tradeSymbol}', '{good.destinationSymbol}', {good.unitsRequired}, {good.unitsFulfilled}),";
             }
-            query = query[0..^1] + ";"; // Replace last comma with a semicolon.
+            query = query[0..^1] + "ON CONFLICT(rowid) DO UPDATE SET unitsFulfilled=excluded.unitsFulfilled;\n"; // Replace last comma with the conflict clause.
 
-            query += "COMMIT;"; // Send it!
+            // Then the delivery goods relationship. Just in case it doesn't exist yet.
+            query += "INSERT OR IGNORE INTO ContractDeliverGood_ContractTerms_relationship (good, terms) VALUES ";
+            foreach(Terms.Deliver good in terms.deliver) {
+                query += $"({good.rowid}, {terms.rowid})";
+            }
+            query = query[0..^1] + ";\n"; // Replace last comma with a semicolon.
+
+            // Payment.
+            query += $"INSERT OR IGNORE INTO ContractPayment (rowid, onAccepted, onFulfilled) VALUES ({terms.payment.rowid}, {terms.payment.onAccepted}, {terms.payment.onFulfilled});";
+
+            // Terms.
+            query += $"INSERT OR IGNORE INTO ContractTerms (rowid, deadline) VALUES ({terms.rowid}, {terms.deadline});\n";
+
+            // Contract root.
+            query += $"INSERT INTO Contract (id, factionSymbol, type, accepted, fulfilled, deadlineToAccept, lastEdited) VALUES ('{id}','{factionSymbol}','{type}',"
+                + $"{(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{(deadlineToAccept - DateTime.UnixEpoch).TotalSeconds},unixepoch(now));\n";
+            query += "COMMIT;\n"; // Send it!
             return await DatabaseManager.instance.WriteQuery(query) > 0;
         }
 
@@ -48,9 +64,11 @@ namespace STCommander
             accepted = (int) p[3] == 1 ? true : false;
             fulfilled = (int) p[4] == 1 ? true : false;
             deadlineToAccept = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[5]);
-            terms.deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[6]);
-            terms.payment.onAccepted = (int) p[7];
-            terms.payment.onFulfilled = (int) p[8];
+            terms.rowid = (int) p[6];
+            terms.deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[7]);
+            terms.payment.rowid = (int) p[8];
+            terms.payment.onAccepted = (int) p[9];
+            terms.payment.onFulfilled = (int) p[10];
             foreach(List<object> good in deliverGoods) {
                 terms.deliver.Add(new Terms.Deliver(good));
             }
@@ -62,8 +80,10 @@ namespace STCommander
         {
             public class Payment
             {
+                protected internal int rowid;
                 public int onAccepted;
                 public int onFulfilled;
+
                 public override string ToString() => $"{onAccepted:n0}cr up front, {onFulfilled:n0}cr on delivery.";
             }
             public class Deliver
@@ -84,6 +104,8 @@ namespace STCommander
 
                 public override string ToString() => $"{unitsFulfilled}/{unitsRequired} {tradeSymbol}→{destinationSymbol}";
             }
+
+            protected internal int rowid;
             public DateTime deadline;
             public Payment payment;
             public List<Deliver> deliver;
