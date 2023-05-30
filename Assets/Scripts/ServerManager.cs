@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +39,7 @@ namespace STCommander
             }
             public Error error;
         }
+
         private class RateLimit
         {
             public DateTime ResetTime { get; private set; }
@@ -78,33 +80,65 @@ namespace STCommander
         private static readonly RateLimit BurstLimit = new RateLimit(10, new TimeSpan(0, 0, 10));
 
         
-        private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO Log Verbosity switch lives here.
+        private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO API Verbosity switch lives here.
         private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
 
-        public async static Task<(ServerResult, T)> CachedRequest<T>( string endpoint, TimeSpan lifespan, RequestMethod method, CancellationTokenSource cancel, string payload = null ) {
+        public async static Task<(ServerResult, List<T>)> RequestList<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationTokenSource cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
 
             // Grab data from cache.
-            (CacheManager.ReturnCode code, string cacheData) = CacheManager.Load(endpoint);
-            if(code == CacheManager.ReturnCode.SUCCESS) {
+            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge);
+            if(cancel.IsCancellationRequested) { return default; }
+            if(cacheData != null) {
                 // Success!
                 if(sendResultsToLog == LogVerbosity.EVERYTHING) {
                     Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
                 }
-                return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), JsonConvert.DeserializeObject<T>(cacheData));
+                return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), cacheData.Cast<T>().ToList());
             }
             // Or grab it from the API instead.
-            (ServerResult res, T result) = await Request<T>(endpoint, method, cancel, payload);
+            (ServerResult res, List<T> result) = await RequestByPassCache<List<T>>(endpoint, method, cancel, payload);
+            if(cancel.IsCancellationRequested) { return default; }
 
             // Save it to the Cache if successful.
             if(res.result == ServerResult.ResultType.SUCCESS) {
-                CacheManager.Save(endpoint, JsonConvert.SerializeObject(result), lifespan);
+                foreach(T r in result) {
+                    if(await r.SaveToCache() == false) {
+                        Debug.LogError("Failed to save to cache: " + r);
+                    }
+                if(cancel.IsCancellationRequested) { return default; }
+            }
+            }
+            return (res, result); // Done!
+        }
+        public async static Task<(ServerResult, T)> RequestSingle<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationTokenSource cancel, string payload = null ) where T : IDataClass {
+            // Remove any starting or trailing slashes.
+            endpoint = endpoint.Trim('/');
+
+            // Grab data from cache.
+            T cacheData = (T) (await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge))[0];
+            if(cancel.IsCancellationRequested) { return default; }
+            if(cacheData != null) {
+                // Success!
+                if(sendResultsToLog == LogVerbosity.EVERYTHING) {
+                    Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
+                }
+                return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), cacheData);
+            }
+            // Or grab it from the API instead.
+            (ServerResult res, T result) = await RequestByPassCache<T>(endpoint, method, cancel, payload);
+            if(cancel.IsCancellationRequested) { return default; }
+
+            // Save it to the Cache if successful.
+            if(res.result == ServerResult.ResultType.SUCCESS) {
+                await result.SaveToCache();
+                if(cancel.IsCancellationRequested) { return default; }
             }
             return (res, result); // Done!
         }
 
-        public async static Task<(ServerResult, T)> Request<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null ) {
+        public async static Task<(ServerResult, T)> RequestByPassCache<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null ) {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
             string uri = Server + endpoint;
@@ -128,24 +162,24 @@ namespace STCommander
                     switch(error.code) {
                         case 409: // Conflict
                             int delay = UnityEngine.Random.Range(10, 1001);
-                            if(sendResultsToLog != LogVerbosity.NONE)
+                            if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
                                 Log(method, endpoint, $"HTTPError: {request.error}\nTrying again in {delay}ms.", payload: payload);
                             await Task.Delay(delay);
-                            return await Request<T>(endpoint, method, cancel, payload, authToken);
+                            return await RequestByPassCache<T>(endpoint, method, cancel, payload, authToken);
                         case 429: // Too Many Requests
-                            if(sendResultsToLog != LogVerbosity.NONE)
+                            if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
                                 Log(method, endpoint, $"HTTPError: { request.error}\nTrying again in 1s.", payload: payload);
                             await Task.Delay(1000);
-                            return await Request<T>(endpoint, method, cancel, payload, authToken);
+                            return await RequestByPassCache<T>(endpoint, method, cancel, payload, authToken);
                         default:
-                            if(sendResultsToLog != LogVerbosity.NONE)
+                            if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
                                 Log(method, endpoint, $"HTTPError: { request.error}\n{ request.downloadHandler.text}", payload: payload, error: true);
                             break;
                     }
                     return (new ServerResult(ServerResult.ResultType.HTTP_ERROR, request.error), default);
                 case UnityWebRequest.Result.ConnectionError: // Connection Errors.
                 case UnityWebRequest.Result.DataProcessingError: // API Errors.
-                    if(sendResultsToLog != LogVerbosity.NONE)
+                    if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
                         Log(method, endpoint, $"Error: { request.error}\n{ request.downloadHandler.text}", payload: payload, error: true);
                     return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, request.error), default);
                 case UnityWebRequest.Result.Success: // Success!
@@ -153,12 +187,12 @@ namespace STCommander
                     try {
                         // Unwrap a potential ServerResponse.
                         ServerResponse<T> resp = JsonConvert.DeserializeObject<ServerResponse<T>>(retstring);
-                        if(sendResultsToLog != LogVerbosity.NONE && sendResultsToLog != LogVerbosity.ERROR_ONLY)
+                        if(sendResultsToLog >= LogVerbosity.API_ONLY)
                             Log(method, endpoint, retstring, resp.meta?.ToString(), payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), resp.data);
                     } catch(JsonSerializationException) {
                         // There was no ServerResponse wrapper.
-                        if(sendResultsToLog != LogVerbosity.NONE && sendResultsToLog != LogVerbosity.ERROR_ONLY)
+                        if(sendResultsToLog >= LogVerbosity.API_ONLY)
                             Log(method, endpoint, retstring, payload: payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
                     }
@@ -213,6 +247,10 @@ namespace STCommander
             return request;
         }
 
+        /// <summary>
+        /// Wrapper function for logging to the Unity console.
+        /// </summary>
+        /// <param name="error">do we use Debug.LogError instead of Debug.Log?</param>
         private static void Log( RequestMethod method, string endpoint, string response, string meta = null, string payload = null, bool error = false ) {
             string logString = $"[API:{method}]{endpoint} - Rate limiters: {RateLimitStatus()}\n";
             if(payload != null) {

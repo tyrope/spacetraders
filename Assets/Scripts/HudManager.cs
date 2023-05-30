@@ -53,7 +53,7 @@ namespace STCommander
         }
 
         private async void UpdateAgentInfo() {
-            (ServerResult result, AgentInfo info) = await ServerManager.CachedRequest<AgentInfo>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
+            (ServerResult result, Agent info) = await ServerManager.RequestSingle<Agent>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested == false && result.result == ServerResult.ResultType.SUCCESS) {
                 AgentInfoDisplay.text = $"Admiral {info.symbol} - Account balance: {info.credits:n0}Cr";
             }

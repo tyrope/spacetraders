@@ -9,7 +9,7 @@ namespace STCommander
     public class AuthCheck : MonoBehaviour {
         public class RegistrationResult
         {
-            public AgentInfo agent;
+            public Agent agent;
             public Contract contract;
             public Faction faction;
             public Ship ship;
@@ -78,7 +78,7 @@ namespace STCommander
             }
             Debug.Log($"Creating agent {name} in faction {faction}");
 
-            (ServerResult result, RegistrationResult reg) = await ServerManager.Request<RegistrationResult>("register", RequestMethod.POST, AsyncCancelToken, payload: req);
+            (ServerResult result, RegistrationResult reg) = await ServerManager.RequestByPassCache<RegistrationResult>("register", RequestMethod.POST, AsyncCancelToken, payload: req);
             if(result.result != ServerResult.ResultType.SUCCESS) {
                 Debug.LogError($"Error creating agent:\n{result.details}");
                 registerErrorTime = 2f;
@@ -89,7 +89,7 @@ namespace STCommander
         }
 
         public async void FillFactionDropdown() {
-            (ServerResult res, List<Faction> factions) = await ServerManager.CachedRequest<List<Faction>>("factions?limit=20", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            (ServerResult res, List<Faction> factions) = await ServerManager.RequestList<Faction>("factions?limit=20", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested) { return; }
             List<string> recruiting = new List<string>();
             foreach(Faction f in factions) {
@@ -102,13 +102,13 @@ namespace STCommander
 
         public async void CheckAuthorization( bool useSavedToken = false ) {
             string authToken = useSavedToken ? PlayerPrefs.GetString("AuthToken") : TokenInputField.text;
-            (ServerResult result, AgentInfo agentInfo) = await ServerManager.Request<AgentInfo>("my/agent", RequestMethod.GET, AsyncCancelToken, null, authToken);
+            (ServerResult result, Agent agentInfo) = await ServerManager.RequestByPassCache<Agent>("my/agent", RequestMethod.GET, AsyncCancelToken, null, authToken);
             if(result.result != ServerResult.ResultType.SUCCESS || agentInfo == null) {
                 Debug.LogError($"Error logging in:\n{result.details}");
                 loginErrorTime = 2f;
                 return;
             }
-            CacheManager.Save("my/agent", JsonConvert.SerializeObject(agentInfo), new System.TimeSpan(0, 1, 0));
+            await agentInfo.SaveToCache();
             if(useSavedToken == false) {
                 PlayerPrefs.SetString("AuthToken", authToken);
                 PlayerPrefs.Save();

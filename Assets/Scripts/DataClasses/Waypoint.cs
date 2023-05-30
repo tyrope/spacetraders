@@ -1,3 +1,5 @@
+using System;
+
 namespace STCommander
 {
     public class Waypoint
@@ -6,6 +8,12 @@ namespace STCommander
         {
             public string symbol;
             public override string ToString() => symbol;
+        }
+        public class Chart
+        {
+            public string waypointSymbol;
+            public string submittedBy;
+            public DateTime subtmittedOn;
         }
         public enum WaypointType { PLANET, GAS_GIANT, MOON, ORBITAL_STATION, JUMP_GATE, ASTEROID_FIELD, NEBULA, DEBRIS_FIELD, GRAVITY_WELL }
         public string symbol;

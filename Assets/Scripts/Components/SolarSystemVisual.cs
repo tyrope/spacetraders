@@ -137,7 +137,7 @@ namespace STCommander
             List<string> owners = new List<string>();
             ServerResult res;
             if(system.factions == null) {
-                (res, system) = await ServerManager.CachedRequest<SolarSystem>($"systems/{system.symbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                (res, system) = await ServerManager.RequestSingle<SolarSystem>($"systems/{system.symbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                 if(AsyncCancelToken.IsCancellationRequested) { return default; }
                 if(res.result != ServerResult.ResultType.SUCCESS) {
                     // Who... owns... this?
@@ -150,7 +150,7 @@ namespace STCommander
                     owners.Add(f.name);
                 } else {
                     Faction fac;
-                    (res, fac) = await ServerManager.CachedRequest<Faction>($"factions/{f.symbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                    (res, fac) = await ServerManager.RequestSingle<Faction>($"factions/{f.symbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                     if(AsyncCancelToken.IsCancellationRequested) { return default; }
                     if(res.result != ServerResult.ResultType.SUCCESS) {
                         // Fall back to the symbol we know.

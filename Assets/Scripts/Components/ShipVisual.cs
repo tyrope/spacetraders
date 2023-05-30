@@ -33,7 +33,7 @@ namespace STCommander
                 } else {
                     expiry = new TimeSpan(0, 0, 10);
                 }
-                (ServerResult res, Ship sh) = await ServerManager.CachedRequest<Ship>($"my/ships/{ship.symbol}", expiry, RequestMethod.GET, AsyncCancelToken);
+                (ServerResult res, Ship sh) = await ServerManager.RequestSingle<Ship>($"my/ships/{ship.symbol}", expiry, RequestMethod.GET, AsyncCancelToken);
                 if(AsyncCancelToken.IsCancellationRequested) { return; }
                 if(res.result == ServerResult.ResultType.SUCCESS) {
                     ship = sh;
@@ -124,11 +124,11 @@ namespace STCommander
             ServerResult res;
 
             SolarSystem departureSystem;
-            (res, departureSystem) = await ServerManager.CachedRequest<SolarSystem>($"systems/{ship.nav.route.departure.systemSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.departure.systemSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             SolarSystem destinationSystem;
-            (res, destinationSystem) = await ServerManager.CachedRequest<SolarSystem>($"systems/{ship.nav.route.destination.systemSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.destination.systemSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             Vector2 currPos;

@@ -1,0 +1,1 @@
+{"error":{"message":"Ship action is still on cooldown for 59 second(s).","code":4000,"data":{"cooldown":{"shipSymbol":"REDACTEDSHIPNAME","totalSeconds":70,"remainingSeconds":59,"expiration":"2023-05-19T22:18:09.118Z"}}}}

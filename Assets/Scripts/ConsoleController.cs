@@ -33,10 +33,10 @@ namespace STCommander
         public async void CallAPI() {
             switch(method.value) {
                 case 0:
-                    await ServerManager.CachedRequest<object>(endpoint.text.Trim(), System.TimeSpan.Zero, RequestMethod.GET, AsyncCancelToken, payload.text.Trim());
+                    await ServerManager.RequestByPassCache<object>(endpoint.text.Trim(),RequestMethod.GET, AsyncCancelToken, payload.text.Trim());
                     break;
                 case 1:
-                    await ServerManager.CachedRequest<object>(endpoint.text.Trim(), System.TimeSpan.Zero, RequestMethod.POST, AsyncCancelToken, payload.text.Trim());
+                    await ServerManager.RequestByPassCache<object>(endpoint.text.Trim(), RequestMethod.POST, AsyncCancelToken, payload.text.Trim());
                     break;
                 default:
                     Debug.LogError("ConsoleController::CallAPI() - Unknown method:" + method.value);
