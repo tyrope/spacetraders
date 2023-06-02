@@ -9,9 +9,9 @@ namespace STCommander
     {
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-            List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT Contract.id, Contract.factionSymbol, Contract.type, Contract.accepted, Contract.fulfilled, "
-                + "Contract.deadlineToAccept, ContractTerms.rowid, ContractTerms.deadline, ContractPayment.rowid, ContractPayment.onAccepted, ContractPayment.onFulfilled FROM Contract, ContractTerms, ContractPayment "
-                + "WHERE Contract.terms=ContractTerms.rowid AND ContractTerms.payment=ContractPayment.rowid AND Contract.lastEdited<" + highestUnixTimestamp);
+            List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT Contract.id,Contract.factionSymbol,Contract.type,Contract.accepted,Contract.fulfilled,Contract.deadlineToAccept,Terms.rowid,"
+                + "Terms.deadline,Payment.rowid,Payment.onAccepted,Payment.onFulfilled FROM Contract LEFT JOIN ContractTerms Terms ON Contract.terms=Terms.rowid "
+                + "LEFT JOIN ContractPayment Payment ON Terms.payment=Payment.rowid WHERE Contract.lastEdited<" + highestUnixTimestamp);
             if(contracts.Count == 0) {
                 Debug.Log($"Contract::LoadFromCache() -- No results.");
                 return null;
@@ -20,7 +20,7 @@ namespace STCommander
             List<List<object>> deliverGoods;
             foreach(List<object> p in contracts) {
                 deliverGoods = await DatabaseManager.instance.SelectQuery("SELECT ContractDeliverGood.rowid, ContractDeliverGood.tradeSymbol, ContractDeliverGood.destinationSymbol, "
-                    + "ContractDeliverGood.unitsRequired, ContractDeliverGood.unitsFulfilled FROM Contract, ContractDeliverGood, ContractDeliverGood_ContractTerms_relationship WHERE"
+                    + "ContractDeliverGood.unitsRequired, ContractDeliverGood.unitsFulfilled FROM ContractDeliverGood WHERE"
                     + " ContractDeliverGood_ContractTerms_relationship.good = ContractDeliverGood.rowid AND ContractDeliverGood_ContractTerms_relationship.terms = Contract.terms AND Contract.id=" + p[0]);
                 ret.Add(new Contract(p, deliverGoods));
             }

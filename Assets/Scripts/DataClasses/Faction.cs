@@ -25,7 +25,7 @@ namespace STCommander
             List<IDataClass> ret = new List<IDataClass>();
             List<List<object>> traits;
             foreach(List<object> p in factions) {
-                traits = await DatabaseManager.instance.SelectQuery("SELECT FactionTrait.symbol, FactionTrait.name, FactionTrait.description FROM Faction, FactionTrait, FactionTrait_Faction_relationship WHERE "
+                traits = await DatabaseManager.instance.SelectQuery("SELECT FactionTrait.symbol, FactionTrait.name, FactionTrait.description FROM FactionTrait WHERE "
                     + $"FactionTrait.symbol=FactionTrait_Faction_relationship.trait AND FactionTrait_Faction_relationship.faction='{p[0]}';");
                 ret.Add(new Faction(p, traits));
             }
@@ -33,19 +33,19 @@ namespace STCommander
         }
 
         public async Task<bool> SaveToCache() {
-            string query = "BEGIN TRANSACTION;\n"; // This might be a big update. Do not let anybody else interfere.
-
             // Traits
-            query += $"REPLACE INTO FactionTrait (symbol, name, description) VALUES";
+            string query = $"INSERT OR IGNORE INTO FactionTrait (symbol, name, description) VALUES";
             foreach(Trait t in traits) {
                     query += $"('{t.symbol}', '{t.name}', '{t.description}',";
             }
             query = query[0..^1] + ";\n"; // Replace last comma with a semicolon.
 
             // Root object.
-            query += $"REPLACE INTO Faction (symbol, name, description, headquarters, isRecruiting, lastEdited) VALUES ('{symbol}','{name}','{description}','{headquarters}',{(isRecruiting ? 1 : 0)},unixepoch(now))";
+            query += "INSERT OR IGNORE INTO Faction (symbol, name, description, headquarters, isRecruiting, lastEdited) VALUES ('"
+                + $"{symbol}','{name}','{description}','{headquarters}',{(isRecruiting ? 1 : 0)}"
+                + ",unixepoch(now));";
 
-            query += "COMMIT;\n"; // Send it!
+            // Send it!
             return await DatabaseManager.instance.WriteQuery(query) > 0;
         }
         public Faction( List<object> p, List<List<object>> traitList ) {
