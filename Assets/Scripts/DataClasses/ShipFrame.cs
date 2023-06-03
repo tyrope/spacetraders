@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace STCommander
 {
@@ -19,14 +20,19 @@ namespace STCommander
         public int fuelCapacity;
         public Ship.Requirements requirements;
 
-        public ShipFrame( List<object> p, int cond ) {
-            description = (string) p[1];
-            moduleSlots = (int) p[2];
-            mountingPoints = (int) p[3];
-            fuelCapacity = (int) p[4];
-            requirements.power = (int) p[5];
-            requirements.crew = (int) p[6];
-            requirements.slots = (int) p[7];
+        public ShipFrame( int rowid, int cond ) {
+            List<object> fields = DatabaseManager.instance.SelectQuery(
+                "SELECT ShipFrame.symbol,ShipFrame.name,ShipFrame.description,ShipFrame.moduleSlots,ShipFrame.mountingPoints,ShipFrame.fuelCapacity,Requirement.power,Requirement.crew,Requirement.slots "
+                + $"FROM ShipFrame LEFT JOIN ShipRequirements Requirement ON ShipFrame.requirements=Requirement.rowid WHERE ShipFrame.rowid={rowid} LIMIT 1;").Result[0];
+            symbol = Enum.Parse<FrameType>((string) fields[0]);
+            name = (string) fields[1];
+            description = (string) fields[2];
+            moduleSlots = (int) fields[3];
+            mountingPoints = (int) fields[4];
+            fuelCapacity = (int) fields[5];
+            requirements.power = (int) fields[6];
+            requirements.crew = (int) fields[7];
+            requirements.slots = (int) fields[8];
             condition = cond;
         }
     }

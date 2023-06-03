@@ -39,7 +39,11 @@ namespace STCommander
             }
         }
 
-        public ShipNavigation(List<object> fields) {
+        public ShipNavigation(int rowid) {
+            // This does an async thingy synchronously. Disgusting but hey ho.
+            List<object> fields = DatabaseManager.instance.SelectQuery(
+                    "SELECT systemSymbol,waypointSymbol,route_destination,route_departure,route_departure,route_departureTime,route_arrival,status,flightMode "
+                    + $"FROM ShipNav WHERE ShipNav.rowid={rowid} LIMIT 1;").Result[0];
             systemSymbol = (string) fields[0];
             waypointSymbol = (string) fields[1];
             route.destination = (string) fields[2];

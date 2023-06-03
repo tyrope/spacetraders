@@ -157,12 +157,12 @@ CREATE TABLE IF NOT EXISTS Ship (
     lastEdited INT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS Ship_ShipModules_relationship (
-    ship INT NO NULL REFERENCES Ship(rowid),
-    shipModule INT NO NULL REFERENCES ShipModule(rowid)
+    ship TEXT NO NULL REFERENCES Ship(symbol),
+    shipModule TEXT NO NULL REFERENCES ShipModule(symbol)
 );
 CREATE TABLE IF NOT EXISTS Ship_ShipMounts_relationship (
-    ship INT NOT NULL REFERENCES Ship(rowid),
-    shipMount INT NOT NULL REFERENCES ShipMount(rowid)
+    ship TEXT NO NULL REFERENCES Ship(symbol),
+    shipMount TEXT NOT NULL REFERENCES ShipMount(symbol)
 );
 CREATE TABLE IF NOT EXISTS ShipCargo (
     capacity INT NOT NULL,
@@ -216,6 +216,7 @@ CREATE TABLE IF NOT EXISTS ShipModule (
 CREATE TABLE IF NOT EXISTS ShipMount (
     symbol TEXT NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
+	description TEXT,
     strength INT,
     requirements INT NOT NULL REFERENCES ShipRequirements(rowid)
 );

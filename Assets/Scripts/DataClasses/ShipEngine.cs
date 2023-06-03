@@ -13,7 +13,10 @@ namespace STCommander
         public int speed;
         public Ship.Requirements requirements;
 
-        public ShipEngine( List<object> fields, int cond ) {
+        public ShipEngine( int rowid, int cond ) {
+            List<object> fields = DatabaseManager.instance.SelectQuery(
+                "SELECT ShipEngine.symbol,ShipEngine.name,ShipEngine.description,ShipEngine.speed,Requirement.power,Requirement.crew,Requirement.slots FROM ShipEngine "
+                + $"LEFT JOIN ShipRequirements Requirement ON ShipEngine.requirements=Requirement.rowid WHERE ShipEngine.rowid={rowid} LIMIT 1;").Result[0];
             symbol = Enum.Parse<ShipEngine.EngineType>((string) fields[0]);
             name = (string) fields[1];
             description = (string) fields[2];
