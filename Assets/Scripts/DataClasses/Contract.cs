@@ -19,9 +19,9 @@ namespace STCommander
             List<IDataClass> ret = new List<IDataClass>();
             List<List<object>> deliverGoods;
             foreach(List<object> p in contracts) {
-                deliverGoods = await DatabaseManager.instance.SelectQuery("SELECT ContractDeliverGood.rowid, ContractDeliverGood.tradeSymbol, ContractDeliverGood.destinationSymbol, "
-                    + "ContractDeliverGood.unitsRequired, ContractDeliverGood.unitsFulfilled FROM ContractDeliverGood WHERE"
-                    + " ContractDeliverGood_ContractTerms_relationship.good = ContractDeliverGood.rowid AND ContractDeliverGood_ContractTerms_relationship.terms = Contract.terms AND Contract.id=" + p[0]);
+                deliverGoods = await DatabaseManager.instance.SelectQuery("SELECT Good.rowid, Good.tradeSymbol, Good.destinationSymbol, Good.unitsRequired, Good.unitsFulfilled FROM Contract "+
+                    "LEFT JOIN ContractTerms Terms ON Terms.rowid = Contract.terms LEFT JOIN ContractDeliverGood_ContractTerms_relationship Relationship ON Terms.rowid = Relationship.terms "+
+                    $"LEFT JOIN ContractDeliverGood Good ON Good.rowid = Relationship.good WHERE Contract.id = '{p[0]}';");
                 ret.Add(new Contract(p, deliverGoods));
             }
             return ret;
