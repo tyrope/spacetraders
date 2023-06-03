@@ -15,12 +15,12 @@ namespace STCommander
 
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-            List<List<object>> result = await DatabaseManager.instance.SelectQuery($"SELECT accountId, symbol, headquarters, credits, startingFaction FROM Agent WHERE lastEdited<{highestUnixTimestamp}");
+            List<List<object>> result = await DatabaseManager.instance.SelectQuery($"SELECT accountId, symbol, headquarters, credits, startingFaction FROM Agent WHERE lastEdited<{highestUnixTimestamp} LIMIT 1");
             if(result.Count != 1) {
                 Debug.LogError($"Agent::LoadFromCache() -- Wrong amount of results: {result.Count}.");
                 return null;
             }
-            return result[0] == null ? default : new List<IDataClass>() { new Agent(result[0]) };
+            return new List<IDataClass>() { new Agent(result[0]) };
         }
 
         public async Task<bool> SaveToCache() {
