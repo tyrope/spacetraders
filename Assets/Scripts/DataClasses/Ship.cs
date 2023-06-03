@@ -7,6 +7,8 @@ namespace STCommander
 {
     public class Ship : IDataClass
     {
+        public static readonly Dictionary<string, Ship> Instances = new Dictionary<string, Ship>();
+
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
             string shipSymbol = "";
             if(endpoint.Trim('/') != "my/ships") {
@@ -95,6 +97,8 @@ namespace STCommander
                 });
             }
             cargo.inventory = inv.ToArray();
+
+            Instances.Add(symbol, this);
         }
 
         public Task<bool> SaveToCache() {

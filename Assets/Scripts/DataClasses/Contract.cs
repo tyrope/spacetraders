@@ -7,6 +7,8 @@ namespace STCommander
 {
     public class Contract : IDataClass
     {
+        public static readonly Dictionary<string, Contract> Instances = new Dictionary<string, Contract>();
+
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
             List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT Contract.id,Contract.factionSymbol,Contract.type,Contract.accepted,Contract.fulfilled,Contract.deadlineToAccept,Terms.rowid,"
@@ -72,6 +74,8 @@ namespace STCommander
             foreach(List<object> good in deliverGoods) {
                 terms.deliver.Add(new Terms.Deliver(good));
             }
+
+            Instances.Add(id, this);
         }
 
 

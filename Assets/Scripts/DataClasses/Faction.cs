@@ -7,6 +7,7 @@ namespace STCommander
 {
     public class Faction : IDataClass
     {
+        public static readonly Dictionary<string, Faction> Instances = new Dictionary<string, Faction>();
         public string symbol;
         public string name;
         public string description;
@@ -58,6 +59,8 @@ namespace STCommander
             foreach(List<object> trait in traitList) {
                 traits.Add(new Trait(trait));
             }
+
+            Instances.Add(symbol, this);
         }
     }
 }
