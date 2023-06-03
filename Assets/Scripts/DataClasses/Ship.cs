@@ -7,6 +7,99 @@ namespace STCommander
 {
     public class Ship : IDataClass
     {
+        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
+            string shipSymbol = "";
+            if(endpoint.Trim('/') != "my/ships") {
+                // We're asking for a specific ship.
+                shipSymbol = $"AND Ship.symbol = '{endpoint.Split('/')[^1]}' ";
+            }
+            double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
+            List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT Ship.symbol,Registration.name,Registration.factionSymbol,Registration.role,Nav.systemSymbol,Nav.waypointSymbol,Nav.route_destination,"
+                + "Nav.route_departure,Nav.route_departureTime,Nav.route_arrival,Nav.status,Nav.flightMode,Crew.\"current\",Crew.required,Crew.capacity,Crew.rotation,Crew.morale,Crew.wages,Frame.symbol,Frame.name,"
+                + "Frame.description,Ship.shipFrame_condition,Frame.moduleSlots,Frame.mountingPoints,Frame.fuelCapacity,FrameReq.power,FrameReq.crew,FrameReq.slots,Reactor.symbol,Reactor.name,Reactor.description,"
+                + "Ship.shipReactor_Condition,Reactor.powerOutput,ReactorReq.power,ReactorReq.crew,ReactorReq.slots,Engine.symbol,Engine.name,Engine.description,Ship.shipEngine_Condition,Engine.speed,EngineReq.power,"
+                + "EngineReq.crew,EngineReq.slots,Cargo.capacity,Cargo.units,Ship.fuelCurrent,Ship.fuelCapacity,Ship.fuelAmount,Ship.fuelTimestamp FROM Ship "
+                + "LEFT JOIN ShipRegistration Registration ON Ship.shipRegistration=Registration.rowid LEFT JOIN ShipNav Nav ON Ship.shipNav=Nav.rowid LEFT JOIN ShipCrew Crew ON Ship.shipCrew=Crew.rowid "
+                + "LEFT JOIN ShipFrame Frame ON Ship.shipFrame=Frame.rowid LEFT JOIN ShipRequirements FrameReq ON Frame.requirements=FrameReq.rowid LEFT JOIN ShipReactor Reactor ON Ship.shipReactor=Reactor.rowid "
+                + "LEFT JOIN ShipRequirements ReactorReq ON Reactor.requirements=ReactorReq.rowid LEFT JOIN ShipEngine Engine ON Ship.shipEngine=Engine.rowid "
+                + "LEFT JOIN ShipRequirements EngineReq ON Engine.requirements=EngineReq.rowid LEFT JOIN ShipCargo Cargo ON Ship.shipCargo=Cargo.rowid WHERE Ship.lastEdited<" + highestUnixTimestamp + shipSymbol);
+            if(ships.Count == 0) {
+                Debug.Log($"Ship::LoadFromCache() -- No results.");
+                return null;
+            }
+            List<IDataClass> ret = new List<IDataClass>();
+            List<List<object>> cargo;
+            foreach(List<object> ship in ships) {
+                cargo = await DatabaseManager.instance.SelectQuery("SELECT Item.symbol, Item.name, Item.description, Item.units FROM Ship INNER JOIN ShipCargo Cargo ON Cargo.rowid=Ship.shipCargo "
+                    + $"INNER JOIN ShipCargo_ShipCargoItem_relationship Relation ON Relation.shipCargo=Cargo.rowid INNER JOIN ShipCargoItem Item ON Item.rowid=Relation.shipCargoItem WHERE Ship.symbol='{ship[0]}';");
+                ;
+                ret.Add(new Ship(ship, cargo));
+            }
+            return ret;
+        }
+        public Ship( List<object> fields, List<List<object>> manifest) {
+            symbol = (string) fields[0];
+            registration.name = (string) fields[1];
+            registration.factionSymbol = (string) fields[2];
+            registration.role = (Role) fields[3];
+            nav.systemSymbol = (string) fields[4];
+            nav.waypointSymbol = (string) fields[5];
+            nav.route.destination = (Waypoint) fields[6]; //TODO Get waypoint instance from symbol.
+            nav.route.departure = (Waypoint) fields[7]; //TODO Get waypoint instance from symbol.
+            nav.route.departureTime = (string) fields[8];
+            nav.route.arrival = (string) fields[9];
+            nav.status = Enum.Parse<Navigation.Status>((string) fields[10]);
+            nav.flightMode = Enum.Parse<Navigation.FlightMode>((string) fields[11]);
+            crew.current = (int) fields[12];
+            crew.required = (int) fields[13];
+            crew.capacity = (int) fields[14];
+            crew.rotation = Enum.Parse<Crew.Rotation>((string) fields[15]);
+            crew.morale = (int) fields[16];
+            frame.description = (string) fields[17];
+            frame.condition = (int) fields[18];
+            frame.moduleSlots = (int) fields[19];
+            frame.mountingPoints = (int) fields[20];
+            frame.fuelCapacity = (int) fields[21];
+            frame.requirements.power = (int) fields[22];
+            frame.requirements.crew = (int) fields[23];
+            frame.requirements.slots = (int) fields[24];
+            reactor.symbol = Enum.Parse<Reactor.ReactorType>((string) fields[25]);
+            reactor.name = (string) fields[26];
+            reactor.description = (string) fields[27];
+            reactor.condition = (int) fields[28];
+            reactor.output = (int) fields[29];
+            reactor.requirements.power = (int) fields[30];
+            reactor.requirements.crew = (int) fields[31];
+            reactor.requirements.slots = (int) fields[32];
+            engine.symbol = Enum.Parse<Engine.EngineType>((string) fields[33]);
+            engine.name = (string) fields[34];
+            engine.description = (string) fields[35];
+            engine.condition = (int) fields[36];
+            engine.speed = (int) fields[37];
+            engine.requirements.power = (int) fields[38];
+            engine.requirements.crew = (int) fields[39];
+            engine.requirements.slots = (int) fields[40];
+            cargo.capacity = (int) fields[41];
+            cargo.units = (int) fields[42];
+            fuel.current = (int) fields[43];
+            fuel.capacity = (int) fields[44];
+            fuel.consumed.amount = (int) fields[45];
+            fuel.consumed.timestamp = (string) fields[46];
+
+            List<Cargo.CargoItem> inv = new List<Cargo.CargoItem>();
+            foreach(List<object> item in manifest) {
+                inv.Add(new Cargo.CargoItem() {
+                    symbol = (string) item[0],
+                    name = (string) item[1],
+                    description = (string) item[2]
+                });
+            }
+            cargo.inventory = inv.ToArray();
+        }
+
+        public Task<bool> SaveToCache() {
+            throw new NotImplementedException();
+        }
         public class Requirements
         {
             public int power;
@@ -201,39 +294,5 @@ namespace STCommander
         public Cargo cargo;
         public Fuel fuel;
 
-        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
-            string shipSymbol="";
-            if(endpoint.Trim('/') != "my/ships") {
-                // We're asking for a specific ship.
-                shipSymbol = $"AND Ship.symbol = '{endpoint.Split('/')[^1]}' ";
-            }
-            double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-            List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT Ship.symbol,Registration.name,Registration.factionSymbol,Registration.role,Nav.systemSymbol,Nav.waypointSymbol,Nav.route_destination,"
-                + "Nav.route_departure,Nav.route_departureTime,Nav.route_arrival,Nav.status,Nav.flightMode,Crew.\"current\",Crew.required,Crew.capacity,Crew.rotation,Crew.morale,Crew.wages,Frame.symbol,Frame.name,"
-                + "Frame.description,Ship.shipFrame_condition,Frame.moduleSlots,Frame.mountingPoints,Frame.fuelCapacity,FrameReq.power,FrameReq.crew,FrameReq.slots,Reactor.symbol,Reactor.name,Reactor.description,"
-                + "Ship.shipReactor_Condition,Reactor.powerOutput,ReactorReq.power,ReactorReq.crew,ReactorReq.slots,Engine.symbol,Engine.name,Engine.description,Ship.shipEngine_Condition,Engine.speed,EngineReq.power,"
-                + "EngineReq.crew,EngineReq.slots,Cargo.capacity,Cargo.units,Ship.fuelCurrent,Ship.fuelCapacity,Ship.fuelAmount,Ship.fuelTimestamp,Ship.lastEdited FROM Ship"
-                + "LEFT JOIN ShipRegistration Registration ON Ship.shipRegistration=Registration.rowid LEFT JOIN ShipNav Nav ON Ship.shipNav=Nav.rowid LEFT JOIN ShipCrew Crew ON Ship.shipCrew=Crew.rowid "
-                + "LEFT JOIN ShipFrame Frame ON Ship.shipFrame=Frame.rowid LEFT JOIN ShipRequirements FrameReq ON Frame.requirements=FrameReq.rowid LEFT JOIN ShipReactor Reactor ON Ship.shipReactor=Reactor.rowid "
-                + "LEFT JOIN ShipRequirements ReactorReq ON Reactor.requirements=ReactorReq.rowid LEFT JOIN ShipEngine Engine ON Ship.shipEngine=Engine.rowid "
-                + "LEFT JOIN ShipRequirements EngineReq ON Engine.requirements=EngineReq.rowid LEFT JOIN ShipCargo Cargo ON Ship.shipCargo=Cargo.rowid WHERE Ship.lastEdited<" + highestUnixTimestamp + shipSymbol);
-            if(ships.Count == 0) {
-                Debug.Log($"Ship::LoadFromCache() -- No results.");
-                return null;
-            }
-            List<IDataClass> ret = new List<IDataClass>();
-            List<List<object>> cargo;
-            foreach(List<object> p in ships) {
-                cargo = await DatabaseManager.instance.SelectQuery("SELECT ContractDeliverGood.rowid, ContractDeliverGood.tradeSymbol, ContractDeliverGood.destinationSymbol, "
-                    + "ContractDeliverGood.unitsRequired, ContractDeliverGood.unitsFulfilled FROM Contract, ContractDeliverGood, ContractDeliverGood_ContractTerms_relationship WHERE"
-                    + " ContractDeliverGood_ContractTerms_relationship.good = ContractDeliverGood.rowid AND ContractDeliverGood_ContractTerms_relationship.terms = Contract.terms AND Contract.id=" + p[0]);
-                ret.Add(new Contract(p, cargo));
-            }
-            return ret;
-        }
-
-        public Task<bool> SaveToCache() {
-            throw new NotImplementedException();
-        }
     }
 }
