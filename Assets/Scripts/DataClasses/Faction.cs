@@ -18,7 +18,14 @@ namespace STCommander
 
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-            List<List<object>> factions = await DatabaseManager.instance.SelectQuery($"SELECT symbol, name, description, headquarters, isRecruiting FROM Faction WHERE lastEdited<{highestUnixTimestamp}");
+
+            string factionSymbol = "";
+            if(endpoint.Trim('/') != "factions") {
+                // We're asking for a specific faction.
+                factionSymbol = $" AND Faction.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
+            }
+
+            List<List<object>> factions = await DatabaseManager.instance.SelectQuery($"SELECT symbol, name, description, headquarters, isRecruiting FROM Faction WHERE lastEdited<{highestUnixTimestamp}" + factionSymbol);
             if(factions.Count == 0) {
                 Debug.Log($"Faction::LoadFromCache() -- No results.");
                 return null;

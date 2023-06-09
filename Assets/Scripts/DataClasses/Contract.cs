@@ -11,9 +11,16 @@ namespace STCommander
 
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
+
+            string contractID = "";
+            if(endpoint.Trim('/') != "my/contracts") {
+                // We're asking for a specific contract.
+                contractID = $" AND Contract.id='{endpoint.Split('/')[^1]}' LIMIT 1";
+            }
+
             List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT Contract.id,Contract.factionSymbol,Contract.type,Contract.accepted,Contract.fulfilled,Contract.deadlineToAccept,Terms.rowid,"
                 + "Terms.deadline,Payment.rowid,Payment.onAccepted,Payment.onFulfilled FROM Contract LEFT JOIN ContractTerms Terms ON Contract.terms=Terms.rowid "
-                + "LEFT JOIN ContractPayment Payment ON Terms.payment=Payment.rowid WHERE Contract.lastEdited<" + highestUnixTimestamp);
+                + "LEFT JOIN ContractPayment Payment ON Terms.payment=Payment.rowid WHERE Contract.lastEdited<" + highestUnixTimestamp + contractID);
             if(contracts.Count == 0) {
                 Debug.Log($"Contract::LoadFromCache() -- No results.");
                 return null;
