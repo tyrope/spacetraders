@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -9,17 +10,17 @@ namespace STCommander
     {
         public static readonly Dictionary<string, Ship> Instances = new Dictionary<string, Ship>();
 
-        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
+        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge, CancellationToken cancel ) {
             string shipSymbol = "";
             if(endpoint.Trim('/') != "my/ships") {
                 // We're asking for a specific ship.
                 shipSymbol = $" AND Ship.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
             }
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-            List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT Ship.symbol,Ship.shipNav,Ship.shipFrame,Ship.shipFrame_condition,Ship.shipReactor,Ship.shipReactor_Condition,Ship.shipEngine," +
-                "Ship.shipEngine_Condition,Registration.name,Registration.factionSymbol,Registration.role,Crew.\"current\",Crew.required,Crew.capacity,Crew.rotation,Crew.morale,Crew.wages,Cargo.capacity,Cargo.units," +
-                "Ship.fuelCurrent,Ship.fuelCapacity,Ship.fuelAmount,Ship.fuelTimestamp FROM Ship LEFT JOIN ShipRegistration Registration ON Ship.shipRegistration=Registration.rowid " +
-                "LEFT JOIN ShipCrew Crew ON Ship.shipCrew=Crew.rowid LEFT JOIN ShipCargo Cargo ON Ship.shipCargo=Cargo.rowid WHERE Ship.lastEdited<" + highestUnixTimestamp + shipSymbol);
+            List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT symbol,nav,frame,frameCondition,reactor,reactorCondition,engine,engineCondition," +
+                "name,factionSymbol,role,\"current\",required,capacity,rotation,morale,wages,cargoCapacity,cargoUnits,fuelCurrent,fuelCapacity,fuelAmount,fuelTimestamp," +
+                "FROM Ship LEFT JOIN ShipRegistration Reg ON Ship.registration=Reg.rowid LEFT JOIN ShipCrew Crew ON crew=Crew.rowid WHERE Ship.lastEdited<" + highestUnixTimestamp + shipSymbol, cancel);
+            if(cancel.IsCancellationRequested) { return default; }
             if(ships.Count == 0) {
                 Debug.Log($"Ship::LoadFromCache() -- No results.");
                 return null;
@@ -28,25 +29,25 @@ namespace STCommander
             List<IDataClass> ret = new List<IDataClass>();
             foreach(List<object> ship in ships) {
                 List<List<object>> cargo = await DatabaseManager.instance.SelectQuery(
-                    "SELECT Item.symbol, Item.name, Item.description, Item.units FROM Ship INNER JOIN ShipCargo Cargo ON Cargo.rowid=Ship.shipCargo "
-                    + $"INNER JOIN ShipCargo_ShipCargoItem_relationship Relation ON Relation.shipCargo=Cargo.rowid INNER JOIN ShipCargoItem Item ON Item.rowid=Relation.shipCargoItem WHERE Ship.symbol='{ship[0]}';");
+                    $"SELECT symbol, name, description, units FROM ShipCargoItem LEFT JOIN Ship_ShipCargoItem_relationship Rel ON Rel.shipCargoItem=ShipCargoItem.rowid WHERE Rel.ship='{ship[0]}';", cancel);
+                if(cancel.IsCancellationRequested) { return default; }
 
                 List<List<object>> modules = await DatabaseManager.instance.SelectQuery(
-                    "SELECT symbol, capacity, range, name, description, power, crew, slots FROM ShipModule" +
-                    "INNER JOIN ShipRequirements Requirement ON ShipModule.requirements=Requirement.rowid" +
-                    $"INNER JOIN Ship_ShipModules_relationship Relationship ON Relationship.shipModule=ShipModule.Symbol WHERE Relationship.ship='{ship[0]}'");
-
+                    "SELECT symbol, capacity, range, name, description, power, crew, slots FROM ShipModule LEFT JOIN ShipRequirements Requirement ON ShipModule.requirements=Requirement.rowid" +
+                    $"LEFT JOIN Ship_ShipModules_relationship Relationship ON Relationship.shipModule=ShipModule.Symbol WHERE Relationship.ship='{ship[0]}'", cancel);
+                if(cancel.IsCancellationRequested) { return default; }
 
                 List<ShipMount> mounts = new List<ShipMount>();
                 foreach(List<object> mount in await DatabaseManager.instance.SelectQuery(
-                    "SELECT ShipMount.symbol,ShipMount.name,ShipMount.description,ShipMount.strength,Requirement.power,Requirement.crew,Requirement.slots"
-                    + "FROM Ship,ShipMount INNER JOIN ShipRequirements Requirement ON ShipMount.requirements=Requirement.rowid INNER JOIN Ship_ShipMounts_relationship Relationship ON Relationship.shipMount=shipMount.symbol"
-                    + $"WHERE Relationship.ship='{ship[0]}';")) {
+                    "SELECT symbol,name,description,strength,power,crew,slots FROM ShipMount LEFT JOIN ShipRequirements Req ON ShipMount.requirements=Req.rowid " +
+                    $"LEFT JOIN Ship_ShipMounts_relationship Relationship ON Relationship.shipMount=shipMount.symbol WHERE Relationship.ship='{ship[0]}';", cancel)) {
+                    if(cancel.IsCancellationRequested) { return default; }
                     mounts.Add(new ShipMount(
                         mount,
-                        (await DatabaseManager.instance.SelectQuery("SELECT Deposit FROM ShipMount_Deposits_relationship WHERE ShipMount_Deposits_relationship.shipMount='{mount[0]}';"))[0]
+                        (await DatabaseManager.instance.SelectQuery($"SELECT Deposit FROM ShipMount_Deposits_relationship WHERE ShipMount_Deposits_relationship.shipMount='{mount[0]}';", cancel))[0]
                         ));
                 }
+                if(cancel.IsCancellationRequested) { return default; }
                 ret.Add(new Ship(ship, modules, mounts, cargo));
             }
             return ret;
@@ -54,9 +55,9 @@ namespace STCommander
         public Ship( List<object> fields, List<List<object>> mdls, List<ShipMount> mnts, List<List<object>> manifest ) {
             symbol = (string) fields[0];
             nav = new ShipNavigation((int) fields[1]);
-            frame = new ShipFrame((int) fields[2], (int) fields[3]);
-            reactor = new ShipReactor((int) fields[4], (int) fields[5]);
-            engine = new ShipEngine((int) fields[6], (int) fields[7]);
+            frame = new ShipFrame((string) fields[2], (int) fields[3]);
+            reactor = new ShipReactor((string) fields[4], (int) fields[5]);
+            engine = new ShipEngine((string) fields[6], (int) fields[7]);
 
             registration.name = (string) fields[8];
             registration.factionSymbol = (string) fields[9];
@@ -87,7 +88,8 @@ namespace STCommander
                 inv.Add(new Cargo.CargoItem() {
                     symbol = (string) item[0],
                     name = (string) item[1],
-                    description = (string) item[2]
+                    description = (string) item[2],
+                    units = (int) item[3]
                 });
             }
             cargo.inventory = inv.ToArray();
@@ -95,8 +97,48 @@ namespace STCommander
             Instances.Add(symbol, this);
         }
 
-        public Task<bool> SaveToCache() {
-            throw new NotImplementedException();
+        public async Task<bool> SaveToCache( CancellationToken cancel ) {
+            // Grab the existing rowids.
+            string query = "SELECT registration, nav, crew FROM Ship WHERE Symbol='{symbol}' LIMIT 1";
+            List<List<object>> ret = await DatabaseManager.instance.SelectQuery(query, cancel);
+            List<int> rowids = new List<int>();
+            if(ret.Count < 1) {
+                // We gotta do inserts and grab new rowids.
+
+                // Registration
+                query = $"INSERT INTO ShipRegistration (name, factionSymbol, role) VALUES ({registration.name}, {registration.factionSymbol}, {registration.role});";
+                await DatabaseManager.instance.WriteQuery(query, cancel);
+                rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
+
+                // Nav
+                query = "INSERT INTO ShipNav (systemSymbol,waypointSymbol,status,flightMode,destination,departure,departureTime,arrival) VALUES" +
+                    $"('{nav.systemSymbol}','{nav.waypointSymbol}','{nav.status}','{nav.flightMode}','{nav.route.destination}','{nav.route.departure}',{nav.route.departureTime},{nav.route.arrival});";
+                await DatabaseManager.instance.WriteQuery(query, cancel);
+                rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
+
+                // Crew
+                query = $"INSERT INTO ShipCrew (\"current\", required, capacity, rotation, morale, wages) VALUES ({crew.current}, {crew.required},{crew.capacity},'{crew.rotation}',{crew.morale},{crew.wages});";
+                await DatabaseManager.instance.WriteQuery(query, cancel);
+                rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
+            } else {
+                // Update using the existing rowids.
+                query = $"UPDATE ShipRegistration SET name='{registration.name}', factionSymbol='{registration.factionSymbol}', role='{registration.role}' WHERE rowid={rowids[0]};";
+                query += $"UPDATE ShipNav SET systemSymbol='{nav.systemSymbol}',waypointSymbol='{nav.waypointSymbol}',status='{nav.status}',flightMode='{nav.flightMode}',destination='{nav.route.destination}'," +
+                    $"departure='{nav.route.departure}',departureTime={nav.route.departureTime},arrival={nav.route.arrival} WHERE rowid={rowids[1]};";
+                query += $"UPDATE ShipCrew SET \"current\"={crew.current},required={crew.required},capacity={crew.capacity},rotation='{crew.rotation}',morale={crew.morale},wages={crew.wages} WHERE rowid={rowids[2]};";
+                await DatabaseManager.instance.WriteQuery(query, cancel);
+            }
+
+            // Root object
+            query += "INSERT INTO Ship (symbol,registration,nav,crew,frame,reactor,engine,cargoCapacity,cargoUnits,fuelCurrent,fuelAmount,fuelTimestamp," +
+                $"frameCondition,reactorCondition,engineCondition,lastEdited) VALUES ('{symbol}',{rowids[0]},{rowids[1]},{rowids[2]},'{frame.symbol}','{reactor.symbol}" +
+                $"','{engine.symbol}',{cargo.capacity},{cargo.units},{fuel.current},{fuel.consumed.amount},{fuel.consumed.timestamp},unixepoch(now)) ON CONFLICT(symbol) DO UPDATE SET " +
+                "cargoUnits=excluded.cargoUnits,fuelCurrent=excluded.fuelCurrent,fuelAmount=excluded.fuelAmount,fuelTimestamp=excluded.fuelTimestamp,shipFrame_condition=excluded.shipFrame_condition," +
+                "shipReactor_condition=excluded.shipReactor_condition,shipEngine_condition=excluded.shipEngine_condition,lastEdited=excluded.lastEdited;";
+            if(cancel.IsCancellationRequested) { return false; }
+
+            // Send it!
+            return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
         public enum Role { FABRICATOR, HARVESTER, HAULER, INTERCEPTOR, EXCAVATOR, TRANSPORT, REPAIR, SURVEYOR, COMMAND, CARRIER, PATROL, SATELLITE, EXPLORER, REFINERY };
         public class Registration

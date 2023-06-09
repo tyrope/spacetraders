@@ -89,5 +89,17 @@ namespace STCommander
                 Debug.Log($"DatabaseManager::WriteQuery() -- Query parsed. \nIn: {query}\nOut:{result}");
             return result;
         }
+
+        public async Task<int> GetLatestRowid(CancellationToken cancel ) {
+            SqliteCommand command = new SqliteCommand("select last_insert_rowid()");
+            sqlConnection.Open();
+            int result = (int) await command.ExecuteScalarAsync();
+            await command.DisposeAsync();
+            sqlConnection.Close();
+            if(cancel.IsCancellationRequested) { return default; }
+            if(sendSqlToLog)
+                Debug.Log($"DatabaseManager::GetLatestRowid() -- Success! {result}");
+            return result;
+        }
     }
 }

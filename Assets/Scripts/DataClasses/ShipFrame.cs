@@ -20,17 +20,16 @@ namespace STCommander
         public int fuelCapacity;
         public ShipRequirements requirements;
 
-        public ShipFrame( int rowid, int cond ) {
-            List<object> fields = DatabaseManager.instance.SelectQuery(
-                "SELECT ShipFrame.symbol,ShipFrame.name,ShipFrame.description,ShipFrame.moduleSlots,ShipFrame.mountingPoints,ShipFrame.fuelCapacity,Requirement.power,Requirement.crew,Requirement.slots "
-                + $"FROM ShipFrame LEFT JOIN ShipRequirements Requirement ON ShipFrame.requirements=Requirement.rowid WHERE ShipFrame.rowid={rowid} LIMIT 1;").Result[0];
-            symbol = Enum.Parse<FrameType>((string) fields[0]);
-            name = (string) fields[1];
-            description = (string) fields[2];
-            moduleSlots = (int) fields[3];
-            mountingPoints = (int) fields[4];
-            fuelCapacity = (int) fields[5];
-            requirements = new ShipRequirements((int) fields[6], (int) fields[7], (int) fields[8]);
+        public ShipFrame( string smbl, int cond ) {
+            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT name, description, moduleSlots, mountingPoints, fuelCapacity, power, crew, slots FROM ShipFrame" +
+                $"LEFT JOIN ShipRequirements Requirement ON ShipFrame.requirements=Requirement.rowid WHERE symbol='{smbl}' LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
+            symbol = Enum.Parse<FrameType>(smbl);
+            name = (string) fields[0];
+            description = (string) fields[1];
+            moduleSlots = (int) fields[2];
+            mountingPoints = (int) fields[3];
+            fuelCapacity = (int) fields[4];
+            requirements = new ShipRequirements((int) fields[5], (int) fields[6], (int) fields[7]);
             condition = cond;
         }
     }
