@@ -14,8 +14,9 @@ CREATE TABLE IF NOT EXISTS Chart (
     lastEdited INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS ConnectedSystem (
-    symbol TEXT NOT NULL PRIMARY KEY REFERENCES System(symbol),
-    distance INTEGER NOT NULL
+    symbol TEXT NOT NULL REFERENCES System(symbol),
+    distance INTEGER NOT NULL,
+	UNIQUE(symbol,distance)
 );
 CREATE TABLE IF NOT EXISTS Contract (
     id TEXT NOT NULL PRIMARY KEY,
@@ -145,21 +146,21 @@ CREATE TABLE IF NOT EXISTS MarketTransactionType (
 );
 CREATE TABLE IF NOT EXISTS Ship (
     symbol TEXT NOT NULL PRIMARY KEY,
-    shipRegistration INTEGER NOT NULL UNIQUE REFERENCES ShipRegistration(rowid),
-    shipNav INTEGER NOT NULL UNIQUE REFERENCES ShipNav(rowid),
-    shipCrew INTEGER UNIQUE REFERENCES ShipCrew(rowid),
-    shipFrame INTEGER REFERENCES ShipFrame(rowid),
-    shipReactor INTEGER REFERENCES ShipReactor(rowid),
-    shipEngine INTEGER NOT NULL REFERENCES ShipEngine(rowid),
-    shipCargo INTEGER NOT NULL UNIQUE REFERENCES ShipCargo(rowid),
+    registration INTEGER NOT NULL UNIQUE REFERENCES ShipRegistration(rowid),
+    nav INTEGER NOT NULL UNIQUE REFERENCES ShipNav(rowid),
+    crew INTEGER UNIQUE REFERENCES ShipCrew(rowid),
+    frame TEXT REFERENCES ShipFrame(symbol),
+    reactor TEXT REFERENCES ShipReactor(symbol),
+    engine TEXT NOT NULL REFERENCES ShipEngine(symbol),
+	cargoCapacity INTEGER NOT NULL,
+	cargoUnits INTEGER NOT NULL,
     fuelCurrent INTEGER NOT NULL,
     fuelCapacity INTEGER NOT NULL,
     fuelAmount INTEGER,
     fuelTimestamp INTEGER,
-
-    shipFrame_condition INTEGER,
-    shipReactor_Condition INTEGER,
-    shipEngine_Condition INTEGER NOT NULL,
+    frameCondition INTEGER,
+    reactorCondition INTEGER,
+    engineCondition INTEGER NOT NULL,
     lastEdited INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS Ship_ShipModules_relationship (
@@ -172,19 +173,15 @@ CREATE TABLE IF NOT EXISTS Ship_ShipMounts_relationship (
     shipMount TEXT NOT NULL REFERENCES ShipMount(symbol),
 	UNIQUE(ship, shipMount)
 );
-CREATE TABLE IF NOT EXISTS ShipCargo (
-    capacity INTEGER NOT NULL,
-    units INTEGER NOT NULL
-);
 CREATE TABLE IF NOT EXISTS ShipCargoItem (
     symbol TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT NOT NULL,
     units INTEGER NOT NULL
 );
-CREATE TABLE IF NOT EXISTS ShipCargo_ShipCargoItem_relationship (
+CREATE TABLE IF NOT EXISTS Ship_ShipCargoItem_relationship (
     shipCargoItem INTEGER NOT NULL PRIMARY KEY REFERENCES ShipCargoItem(rowid),
-    shipCargo INTEGER NOT NULL REFERENCES ShipCargo(rowid)
+    ship TEXT NOT NULL REFERENCES Ship(symbol)
 );
 CREATE TABLE IF NOT EXISTS ShipCrew (
     "current" INTEGER NOT NULL,
@@ -236,13 +233,12 @@ CREATE TABLE IF NOT EXISTS ShipMount_Deposits_relationship (
 CREATE TABLE IF NOT EXISTS ShipNav (
     systemSymbol TEXT NOT NULL REFERENCES System(symbol),
     waypointSymbol TEXT NOT NULL REFERENCES Waypoint(symbol),
-    route INTEGER NOT NULL REFERENCES ShipNavRoute(rowid),
     status TEXT NOT NULL REFERENCES ShipNavStatus(value),
     flightMode TEXT NOT NULL REFERENCES ShipNavFlightMode(value),
-    route_destination INTEGER NOT NULL REFERENCES Waypoint(rowid),
-    route_departure INTEGER NOT NULL REFERENCES Waypoint(rowid),
-    route_departureTime INTEGER NOT NULL,
-    route_arrival INTEGER NOT NULL
+    destination TEXT NOT NULL REFERENCES Waypoint(symbol),
+    departure TEXT NOT NULL REFERENCES Waypoint(symbol),
+    departureTime INTEGER NOT NULL,
+    arrival INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS ShipNavFlightMode (
     value TEXT NOT NULL PRIMARY KEY
