@@ -79,7 +79,8 @@ CREATE TABLE IF NOT EXISTS FactionTraitSymbols(
 );
 CREATE TABLE IF NOT EXISTS FactionTrait_Faction_relationship (
     faction TEXT NOT NULL REFERENCES Faction(symbol),
-    trait TEXT NOT NULL REFERENCES FactionTrait(symbol)
+    trait TEXT NOT NULL REFERENCES FactionTrait(symbol),
+	UNIQUE(faction, trait)
 );
 CREATE TABLE IF NOT EXISTS JumpGate (
     jumpRange INTEGER NOT NULL,
@@ -88,7 +89,8 @@ CREATE TABLE IF NOT EXISTS JumpGate (
 );
 CREATE TABLE IF NOT EXISTS ConnectedSystem_JumpGate_relationship (
     connectedSystem INTEGER NOT NULL REFERENCES ConnectedSystem(rowid),
-    jumpGate INTEGER NOT NULL REFERENCES JumpGate(rowid)
+    jumpGate INTEGER NOT NULL REFERENCES JumpGate(rowid),
+	UNIQUE(connectedSystem, jumpGate)
 );
 CREATE TABLE IF NOT EXISTS Market (
     symbol TEXT NOT NULL PRIMARY KEY REFERENCES Waypoint(symbol),
@@ -96,15 +98,18 @@ CREATE TABLE IF NOT EXISTS Market (
 );
 CREATE TABLE IF NOT EXISTS Market_exports_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
-    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol)
+    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
+	UNIQUE(market, tradeGood)
 );
 CREATE TABLE IF NOT EXISTS Market_imports_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
-    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol)
+    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
+	UNIQUE(market, tradeGood)
 );
 CREATE TABLE IF NOT EXISTS Market_exchange_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
-    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol)
+    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
+	UNIQUE(market, tradeGood)
 );
 CREATE TABLE IF NOT EXISTS Market_transactions_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
@@ -112,7 +117,8 @@ CREATE TABLE IF NOT EXISTS Market_transactions_relationship (
 );
 CREATE TABLE IF NOT EXISTS Market_tradegoods_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
-    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol)
+    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
+	UNIQUE(market, tradeGood)
 );
 CREATE TABLE IF NOT EXISTS MarketTradeGood (
     symbol TEXT NOT NULL REFERENCES TradeGood(symbol),
@@ -158,11 +164,13 @@ CREATE TABLE IF NOT EXISTS Ship (
 );
 CREATE TABLE IF NOT EXISTS Ship_ShipModules_relationship (
     ship TEXT NOT NULL REFERENCES Ship(symbol),
-    shipModule TEXT NOT NULL REFERENCES ShipModule(symbol)
+    shipModule TEXT NOT NULL REFERENCES ShipModule(symbol),
+	UNIQUE(ship, shipModule)
 );
 CREATE TABLE IF NOT EXISTS Ship_ShipMounts_relationship (
     ship TEXT NOT NULL REFERENCES Ship(symbol),
-    shipMount TEXT NOT NULL REFERENCES ShipMount(symbol)
+    shipMount TEXT NOT NULL REFERENCES ShipMount(symbol),
+	UNIQUE(ship, shipMount)
 );
 CREATE TABLE IF NOT EXISTS ShipCargo (
     capacity INTEGER NOT NULL,
@@ -222,7 +230,8 @@ CREATE TABLE IF NOT EXISTS ShipMount (
 );
 CREATE TABLE IF NOT EXISTS ShipMount_Deposits_relationship (
     shipMount TEXT NOT NULL REFERENCES ShipMount(symbol),
-    deposit TEXT NOT NULL
+    deposit TEXT NOT NULL,
+	UNIQUE(shipMount, deposit)
 );
 CREATE TABLE IF NOT EXISTS ShipNav (
     systemSymbol TEXT NOT NULL REFERENCES System(symbol),
@@ -270,7 +279,8 @@ CREATE TABLE IF NOT EXISTS Shipyard (
 );
 CREATE TABLE IF NOT EXISTS ShipYard_ShipType_relationships(
     shipYard TEXT NOT NULL REFERENCES Shipyard(symbol),
-    shipType TEXT NOT NULL REFERENCES ShipType(value)
+    shipType TEXT NOT NULL REFERENCES ShipType(value),
+	UNIQUE(shipYard, shipType)
 );
 CREATE TABLE IF NOT EXISTS ShipyardShip (
     type TEXT REFERENCES ShipType(value),
@@ -287,11 +297,13 @@ CREATE TABLE IF NOT EXISTS Shipyard_ShipyardShip_relationship (
 );
 CREATE TABLE IF NOT EXISTS ShipyardShip_ShipModule_relationship (
     shipyardShip TEXT NOT NULL REFERENCES ShipyardShip(rowid),
-    shipModule TEXT NOT NULL REFERENCES ShipModule(symbol)
+    shipModule TEXT NOT NULL REFERENCES ShipModule(symbol),
+	UNIQUE(shipyardShip, shipModule)
 );
 CREATE TABLE IF NOT EXISTS ShipyardShip_ShipMount_relationship (
     shipyardShip TEXT NOT NULL REFERENCES ShipyardShip(rowid),
-    shipMount TEXT NOT NULL REFERENCES shipMount(symbol)
+    shipMount TEXT NOT NULL REFERENCES shipMount(symbol),
+	UNIQUE(shipyardShip, shipMount)
 );
 CREATE TABLE IF NOT EXISTS ShipyardTransaction (
     waypointSymbol TEXT NOT NULL REFERENCES Waypoint(symbol),
@@ -327,13 +339,14 @@ CREATE TABLE IF NOT EXISTS System (
 );
 CREATE TABLE IF NOT EXISTS System_Faction_relationship(
     system TEXT NOT NULL REFERENCES System(symbol),
-    faction TEXT NOT NULL REFERENCES Faction(symbol)
+    faction TEXT NOT NULL REFERENCES Faction(symbol),
+	UNIQUE(system, faction)
 );
 CREATE TABLE IF NOT EXISTS SystemType (
     value TEXT NOT NULL PRIMARY KEY
 );
 CREATE TABLE IF NOT EXISTS TradeGood (
-    symbol TEXT NOT NULL REFERENCES TradeSymbol(value),
+    symbol TEXT NOT NULL PRIMARY KEY REFERENCES TradeSymbol(value),
     name TEXT NOT NULL,
     description TEXT NOT NULL
 );
@@ -360,7 +373,8 @@ CREATE TABLE IF NOT EXISTS WaypointTrait (
 );
 CREATE TABLE IF NOT EXISTS Waypoint_WaypointTrait_relationship (
     waypoint TEXT NOT NULL REFERENCES Waypoint(symbol),
-    trait TEXT NOT NULL REFERENCES WaypointTrait(symbol)
+    trait TEXT NOT NULL REFERENCES WaypointTrait(symbol),
+	UNIQUE(waypoint, trait)
 );
 CREATE TABLE IF NOT EXISTS WaypointType (
     value TEXT NOT NULL PRIMARY KEY
