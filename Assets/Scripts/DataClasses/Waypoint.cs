@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace STCommander
 {
-    public class Waypoint
+    public class Waypoint : IDataClass
     {
         public readonly static Dictionary<string, Waypoint> Instances = new Dictionary<string, Waypoint>();
 
@@ -40,6 +42,14 @@ namespace STCommander
             }
 
             return retString;
+        }
+
+        public Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge, CancellationToken cancel ) {
+            throw new NotImplementedException();
+        }
+
+        public Task<bool> SaveToCache( CancellationToken cancel ) {
+            throw new NotImplementedException();
         }
     }
 }
