@@ -22,7 +22,7 @@ namespace STCommander
         public string description;
         public int strength;
         public Deposit[] deposits;
-        public Ship.Requirements requirements;
+        public ShipRequirements requirements;
 
         public ShipMount( List<object> fields, List<object> deps ) {
             symbol = Enum.Parse<MountType>((string) fields[0]);
@@ -36,9 +36,7 @@ namespace STCommander
             }
             deposits = listdeps.ToArray();
 
-            requirements.power = (int) fields[5];
-            requirements.crew = (int) fields[6];
-            requirements.slots = (int) fields[7];
+            requirements = new ShipRequirements((int) fields[5], (int) fields[6], (int) fields[7]);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace STCommander
         public string description;
         public int condition;
         public int speed;
-        public Ship.Requirements requirements;
+        public ShipRequirements requirements;
 
         public ShipEngine( int rowid, int cond ) {
             List<object> fields = DatabaseManager.instance.SelectQuery(
@@ -21,9 +21,7 @@ namespace STCommander
             name = (string) fields[1];
             description = (string) fields[2];
             speed = (int) fields[3];
-            requirements.power = (int) fields[4];
-            requirements.crew = (int) fields[5];
-            requirements.slots = (int) fields[6];
+            requirements = new ShipRequirements((int) fields[4], (int) fields[5], (int) fields[6]);
             condition = cond;
         }
     }

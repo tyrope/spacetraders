@@ -28,7 +28,7 @@ namespace STCommander
             if(TimeSinceRefresh > 1f) {
                 TimeSinceRefresh %= 1f;
                 TimeSpan expiry;
-                if(ship.nav.status == Ship.Navigation.Status.IN_TRANSIT) {
+                if(ship.nav.status == ShipNavigation.Status.IN_TRANSIT) {
                     expiry = new TimeSpan(0, 0, 1);
                 } else {
                     expiry = new TimeSpan(0, 0, 10);
@@ -65,7 +65,7 @@ namespace STCommander
             // System selected.
             if(mapManager.SelectedSystem != null) {
                 // Check if we're in this system.
-                if(ship.nav.status != Ship.Navigation.Status.IN_TRANSIT) {
+                if(ship.nav.status != ShipNavigation.Status.IN_TRANSIT) {
                     // We're parked... here?
                     if(mapManager.SelectedSystem.symbol == ship.nav.systemSymbol) {
                         await SetSolarPosition();
@@ -73,7 +73,7 @@ namespace STCommander
                     }
                 } else {
                     // We're in transit, is it an intra-system transit within the selected system?
-                    if(mapManager.SelectedSystem.symbol == ship.nav.route.departure.systemSymbol && mapManager.SelectedSystem.symbol == ship.nav.route.destination.systemSymbol) {
+                    if(mapManager.SelectedSystem.symbol == ship.nav.route.departure && mapManager.SelectedSystem.symbol == ship.nav.route.destination) {
                         await SetSolarPosition();
                         return;
                     }
@@ -84,17 +84,17 @@ namespace STCommander
             }
 
             // A waypoint is selected. Easy out: Are we parked there?
-            if(ship.nav.status != Ship.Navigation.Status.IN_TRANSIT && mapManager.SelectedWaypoint.symbol == ship.nav.waypointSymbol) {
+            if(ship.nav.status != ShipNavigation.Status.IN_TRANSIT && mapManager.SelectedWaypoint.symbol == ship.nav.waypointSymbol) {
                 await SetSolarPosition();
                 return;
             }
 
-            bool deptWithinOrbitals = ship.nav.route.departure.symbol == mapManager.SelectedWaypoint.symbol;
-            bool destWithinOrbitals = ship.nav.route.destination.symbol == mapManager.SelectedWaypoint.symbol;
+            bool deptWithinOrbitals = ship.nav.route.departure == mapManager.SelectedWaypoint.symbol;
+            bool destWithinOrbitals = ship.nav.route.destination == mapManager.SelectedWaypoint.symbol;
             //Not parked at the selection... Grab it's orbitals.
             foreach(Waypoint.Orbital o in mapManager.SelectedWaypoint.orbitals) {
                 // Are we parked?
-                if(ship.nav.status != Ship.Navigation.Status.IN_TRANSIT) {
+                if(ship.nav.status != ShipNavigation.Status.IN_TRANSIT) {
                     if(o.symbol == ship.nav.waypointSymbol) {
                         // We're parked here! Display.
                         await SetSolarPosition();
@@ -106,8 +106,8 @@ namespace STCommander
                 }
 
                 // We're in transit.
-                deptWithinOrbitals = deptWithinOrbitals || o.symbol == ship.nav.route.departure.symbol;
-                destWithinOrbitals = destWithinOrbitals || o.symbol == ship.nav.route.destination.symbol;
+                deptWithinOrbitals = deptWithinOrbitals || o.symbol == ship.nav.route.departure;
+                destWithinOrbitals = destWithinOrbitals || o.symbol == ship.nav.route.destination;
                 if(deptWithinOrbitals && destWithinOrbitals) {
                     // And both departure and destination is within view.
                     await SetSolarPosition();
@@ -124,11 +124,11 @@ namespace STCommander
             ServerResult res;
 
             SolarSystem departureSystem;
-            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.departure.systemSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.departure}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             SolarSystem destinationSystem;
-            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.destination.systemSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.destination}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
             if(AsyncCancelToken.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             Vector2 currPos;
@@ -154,7 +154,7 @@ namespace STCommander
         private async Task SetSolarPosition() {
             Transform parentContainer = mapManager.SelectedWaypoint != null ? mapManager.WaypointContainer : mapManager.SystemContainer.Find(ship.nav.systemSymbol).Find("Waypoints").transform;
 
-            if(ship.nav.status != Ship.Navigation.Status.IN_TRANSIT) {
+            if(ship.nav.status != ShipNavigation.Status.IN_TRANSIT) {
                 // Parked!
                 foreach(Transform wpTrans in parentContainer) {
                     if(wpTrans.gameObject.GetComponent<WaypointVisual>().waypoint.symbol == ship.nav.waypointSymbol) {
@@ -162,7 +162,7 @@ namespace STCommander
                         transform.position = new Vector3(wpTrans.position.x, 0, wpTrans.position.z);
                         transform.Find("Visuals").rotation = Quaternion.identity;
 
-                        if(ship.nav.status == Ship.Navigation.Status.IN_ORBIT && mapManager.GetMapScale() > 0.05f) {
+                        if(ship.nav.status == ShipNavigation.Status.IN_ORBIT && mapManager.GetMapScale() > 0.05f) {
                             // We're orbiting around the currently selected waypoint; actually show an orbit.
                             transform.position += OrbitalPosition;
                             transform.Find("Visuals").Rotate(Vector3.up, OrbitalAngle - 90f);
@@ -179,8 +179,8 @@ namespace STCommander
                 string wpSymbol;
                 foreach(Transform wpTrans in parentContainer) {
                     wpSymbol = wpTrans.gameObject.GetComponent<WaypointVisual>().waypoint.symbol;
-                    if(wpSymbol == ship.nav.route.departure.symbol) { departure = wpTrans; } // Is this the departure waypoint?
-                    if(wpSymbol == ship.nav.route.destination.symbol) { destination = wpTrans; } // Is this the destination waypoint?
+                    if(wpSymbol == ship.nav.route.departure) { departure = wpTrans; } // Is this the departure waypoint?
+                    if(wpSymbol == ship.nav.route.destination) { destination = wpTrans; } // Is this the destination waypoint?
                     if(departure != null && destination != null) { break; } // We've got both ends! Stop looping.
                 }
 

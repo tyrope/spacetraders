@@ -18,7 +18,7 @@ namespace STCommander
         public int moduleSlots;
         public int mountingPoints;
         public int fuelCapacity;
-        public Ship.Requirements requirements;
+        public ShipRequirements requirements;
 
         public ShipFrame( int rowid, int cond ) {
             List<object> fields = DatabaseManager.instance.SelectQuery(
@@ -30,9 +30,7 @@ namespace STCommander
             moduleSlots = (int) fields[3];
             mountingPoints = (int) fields[4];
             fuelCapacity = (int) fields[5];
-            requirements.power = (int) fields[6];
-            requirements.crew = (int) fields[7];
-            requirements.slots = (int) fields[8];
+            requirements = new ShipRequirements((int) fields[6], (int) fields[7], (int) fields[8]);
             condition = cond;
         }
     }

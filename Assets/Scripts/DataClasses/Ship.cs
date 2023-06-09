@@ -13,7 +13,7 @@ namespace STCommander
             string shipSymbol = "";
             if(endpoint.Trim('/') != "my/ships") {
                 // We're asking for a specific ship.
-                shipSymbol = $"AND Ship.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
+                shipSymbol = $" AND Ship.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
             }
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
             List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT Ship.symbol,Ship.shipNav,Ship.shipFrame,Ship.shipFrame_condition,Ship.shipReactor,Ship.shipReactor_Condition,Ship.shipEngine," +
@@ -31,7 +31,10 @@ namespace STCommander
                     "SELECT Item.symbol, Item.name, Item.description, Item.units FROM Ship INNER JOIN ShipCargo Cargo ON Cargo.rowid=Ship.shipCargo "
                     + $"INNER JOIN ShipCargo_ShipCargoItem_relationship Relation ON Relation.shipCargo=Cargo.rowid INNER JOIN ShipCargoItem Item ON Item.rowid=Relation.shipCargoItem WHERE Ship.symbol='{ship[0]}';");
 
-                List<List<object>> modules = await DatabaseManager.instance.SelectQuery("");
+                List<List<object>> modules = await DatabaseManager.instance.SelectQuery(
+                    "SELECT symbol, capacity, range, name, description, power, crew, slots FROM ShipModule" +
+                    "INNER JOIN ShipRequirements Requirement ON ShipModule.requirements=Requirement.rowid" +
+                    $"INNER JOIN Ship_ShipModules_relationship Relationship ON Relationship.shipModule=ShipModule.Symbol WHERE Relationship.ship='{ship[0]}'");
 
 
                 List<ShipMount> mounts = new List<ShipMount>();
@@ -71,9 +74,9 @@ namespace STCommander
             fuel.consumed.amount = (int) fields[21];
             fuel.consumed.timestamp = (string) fields[22];
 
-            List<Module> mods = new List<Module>();
+            List<ShipModule> mods = new List<ShipModule>();
             foreach(List<object> module in mdls) {
-                mods.Add(new Module() {
+                mods.Add(new ShipModule(module) {
                 });
             }
             Modules = mods.ToArray();
@@ -94,12 +97,6 @@ namespace STCommander
 
         public Task<bool> SaveToCache() {
             throw new NotImplementedException();
-        }
-        public class Requirements
-        {
-            public int power;
-            public int crew;
-            public int slots;
         }
         public enum Role { FABRICATOR, HARVESTER, HAULER, INTERCEPTOR, EXCAVATOR, TRANSPORT, REPAIR, SURVEYOR, COMMAND, CARRIER, PATROL, SATELLITE, EXPLORER, REFINERY };
         public class Registration
@@ -162,7 +159,7 @@ namespace STCommander
         public ShipFrame frame;
         public ShipReactor reactor;
         public ShipEngine engine;
-        public Module[] Modules;
+        public ShipModule[] Modules;
         public ShipMount[] Mounts;
         public Cargo cargo;
         public Fuel fuel;
