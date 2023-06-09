@@ -157,11 +157,11 @@ CREATE TABLE IF NOT EXISTS Ship (
     lastEdited INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS Ship_ShipModules_relationship (
-    ship TEXT NO NULL REFERENCES Ship(symbol),
-    shipModule TEXT NO NULL REFERENCES ShipModule(symbol)
+    ship TEXT NOT NULL REFERENCES Ship(symbol),
+    shipModule TEXT NOT NULL REFERENCES ShipModule(symbol)
 );
 CREATE TABLE IF NOT EXISTS Ship_ShipMounts_relationship (
-    ship TEXT NO NULL REFERENCES Ship(symbol),
+    ship TEXT NOT NULL REFERENCES Ship(symbol),
     shipMount TEXT NOT NULL REFERENCES ShipMount(symbol)
 );
 CREATE TABLE IF NOT EXISTS ShipCargo (
@@ -305,41 +305,40 @@ CREATE TABLE IF NOT EXISTS ShipyardTransaction_Shipyard_relationship (
     shipyard TEXT NOT NULL REFERENCES Shipyard(symbol)
 );
 CREATE TABLE IF NOT EXISTS Survey (
-    signature TEXT NO NULL,
-    symbol TEXT NO NULL REFERENCES Waypoint(symbol),
-    expiration INTEGER NO NULL,
-    size TEXT NO NULL CHECK (size IN ('SMALL','MODERATE','LARGE')),
+    signature TEXT NOT NULL,
+    symbol TEXT NOT NULL REFERENCES Waypoint(symbol),
+    expiration INTEGER NOT NULL,
+    size TEXT NOT NULL CHECK (size IN ('SMALL','MODERATE','LARGE')),
     lastEdited INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS SurveyDeposit (
-    symbol TEXT NO NULL PRIMARY KEY REFERENCES TradeSymbol(value)
+    symbol TEXT NOT NULL PRIMARY KEY REFERENCES TradeSymbol(value)
 );
 CREATE TABLE IF NOT EXISTS SurveyDeposit_Survey_relationship (
-    deposit INTEGER NO NULL PRIMARY KEY REFERENCES SurveyDeposit(rowid),
-    survey TEXT NO NULL REFERENCES Survey(signature)
+    deposit INTEGER NOT NULL PRIMARY KEY REFERENCES SurveyDeposit(rowid),
+    survey TEXT NOT NULL REFERENCES Survey(signature)
 );
 CREATE TABLE IF NOT EXISTS System (
-    symbol TEXT NO NULL PRIMARY KEY,
-    sectorSymbol TEXT NO NULL,
-    type TEXT NO NULL REFERENCES SystemType(value),
-    x INTEGER NO NULL,
-    y INTEGER NO NULL,
-    lastEdited INTEGER NOT NULL
+    symbol TEXT NOT NULL PRIMARY KEY,
+    sectorSymbol TEXT NOT NULL,
+    type TEXT NOT NULL REFERENCES SystemType(value),
+    x INTEGER NOT NULL,
+    y INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS System_Faction_relationship(
-    system TEXT NO NULL REFERENCES System(symbol),
-    faction TEXT NO NULL REFERENCES Faction(symbol)
+    system TEXT NOT NULL REFERENCES System(symbol),
+    faction TEXT NOT NULL REFERENCES Faction(symbol)
 );
 CREATE TABLE IF NOT EXISTS SystemType (
-    value TEXT NO NULL PRIMARY KEY
+    value TEXT NOT NULL PRIMARY KEY
 );
 CREATE TABLE IF NOT EXISTS TradeGood (
-    symbol TEXT NO NULL REFERENCES TradeSymbol(value),
-    name TEXT NO NULL,
-    description TEXT NO NULL
+    symbol TEXT NOT NULL REFERENCES TradeSymbol(value),
+    name TEXT NOT NULL,
+    description TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS TradeSymbol (
-    value TEXT NO NULL PRIMARY KEY
+    value TEXT NOT NULL PRIMARY KEY
 );
 CREATE TABLE IF NOT EXISTS Waypoint (
     symbol TEXT NOT NULL PRIMARY KEY,
@@ -351,20 +350,20 @@ CREATE TABLE IF NOT EXISTS Waypoint (
     lastEdited INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS Orbital (
-    symbol TEXT NO NULL PRIMARY KEY REFERENCES Waypoint(symbol),
-    parent TEXT NO NULL REFERENCES Waypoint(symbol)
+    symbol TEXT NOT NULL PRIMARY KEY REFERENCES Waypoint(symbol),
+    parent TEXT NOT NULL REFERENCES Waypoint(symbol)
 );
 CREATE TABLE IF NOT EXISTS WaypointTrait (
-    symbol TEXT NO NULL PRIMARY KEY,
-    name TEXT NO NULL,
-    description TEXT NO NULL
+    symbol TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS Waypoint_WaypointTrait_relationship (
-    waypoint TEXT NO NULL REFERENCES Waypoint(symbol),
-    trait TEXT NO NULL REFERENCES WaypointTrait(symbol)
+    waypoint TEXT NOT NULL REFERENCES Waypoint(symbol),
+    trait TEXT NOT NULL REFERENCES WaypointTrait(symbol)
 );
 CREATE TABLE IF NOT EXISTS WaypointType (
-    value TEXT NO NULL PRIMARY KEY
+    value TEXT NOT NULL PRIMARY KEY
 );
 
 -- Prep enums.
