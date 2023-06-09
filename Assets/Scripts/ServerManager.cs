@@ -88,9 +88,9 @@ namespace STCommander
             endpoint = endpoint.Trim('/');
 
             // Grab data from cache.
-            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge);
+            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge, cancel.Token);
             if(cancel.IsCancellationRequested) { return default; }
-            if(cacheData != null) {
+            if(cacheData != null && cacheData.Count > 0) {
                 // Success!
                 if(sendResultsToLog == LogVerbosity.EVERYTHING) {
                     Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
@@ -104,7 +104,7 @@ namespace STCommander
             // Save it to the Cache if successful.
             if(res.result == ServerResult.ResultType.SUCCESS) {
                 foreach(T r in result) {
-                    if(await r.SaveToCache() == false) {
+                    if(await r.SaveToCache(cancel.Token) == false) {
                         Debug.LogError("Failed to save to cache: " + r);
                     }
                 if(cancel.IsCancellationRequested) { return default; }
@@ -117,14 +117,18 @@ namespace STCommander
             endpoint = endpoint.Trim('/');
 
             // Grab data from cache.
-            T cacheData = (T) (await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge))[0];
+            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge, cancel.Token);
             if(cancel.IsCancellationRequested) { return default; }
             if(cacheData != null) {
                 // Success!
+                if(cacheData.Count > 1) {
+                    // Sort of.
+                    Debug.LogWarning("ServerManager::RequestSingle() -- More than 1 result received, ignoring all but the first.");
+                }
                 if(sendResultsToLog == LogVerbosity.EVERYTHING) {
                     Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
                 }
-                return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), cacheData);
+                return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), (T) cacheData[0]);
             }
             // Or grab it from the API instead.
             (ServerResult res, T result) = await RequestByPassCache<T>(endpoint, method, cancel, payload);
@@ -132,7 +136,7 @@ namespace STCommander
 
             // Save it to the Cache if successful.
             if(res.result == ServerResult.ResultType.SUCCESS) {
-                await result.SaveToCache();
+                await result.SaveToCache(cancel.Token);
                 if(cancel.IsCancellationRequested) { return default; }
             }
             return (res, result); // Done!

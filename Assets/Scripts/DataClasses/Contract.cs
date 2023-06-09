@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ namespace STCommander
     {
         public static readonly Dictionary<string, Contract> Instances = new Dictionary<string, Contract>();
 
-        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
+        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge, CancellationToken cancel ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
 
             string contractID = "";
@@ -20,7 +21,7 @@ namespace STCommander
 
             List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT Contract.id,Contract.factionSymbol,Contract.type,Contract.accepted,Contract.fulfilled,Contract.deadlineToAccept,Terms.rowid,"
                 + "Terms.deadline,Payment.rowid,Payment.onAccepted,Payment.onFulfilled FROM Contract LEFT JOIN ContractTerms Terms ON Contract.terms=Terms.rowid "
-                + "LEFT JOIN ContractPayment Payment ON Terms.payment=Payment.rowid WHERE Contract.lastEdited<" + highestUnixTimestamp + contractID);
+                + "LEFT JOIN ContractPayment Payment ON Terms.payment=Payment.rowid WHERE Contract.lastEdited<" + highestUnixTimestamp + contractID, cancel);
             if(contracts.Count == 0) {
                 Debug.Log($"Contract::LoadFromCache() -- No results.");
                 return null;
@@ -30,13 +31,13 @@ namespace STCommander
             foreach(List<object> p in contracts) {
                 deliverGoods = await DatabaseManager.instance.SelectQuery("SELECT Good.rowid, Good.tradeSymbol, Good.destinationSymbol, Good.unitsRequired, Good.unitsFulfilled FROM Contract "+
                     "LEFT JOIN ContractTerms Terms ON Terms.rowid = Contract.terms LEFT JOIN ContractDeliverGood_ContractTerms_relationship Relationship ON Terms.rowid = Relationship.terms "+
-                    $"LEFT JOIN ContractDeliverGood Good ON Good.rowid = Relationship.good WHERE Contract.id = '{p[0]}';");
+                    $"LEFT JOIN ContractDeliverGood Good ON Good.rowid = Relationship.good WHERE Contract.id = '{p[0]}';", cancel);
                 ret.Add(new Contract(p, deliverGoods));
             }
             return ret;
         }
 
-        public async Task<bool> SaveToCache() {
+        public async Task<bool> SaveToCache( CancellationToken cancel ) {
             string query = "BEGIN TRANSACTION;\n"; // This is going to be a big update. Do not let anybody else interfere.
 
             // First, our delivery goods.
@@ -63,7 +64,7 @@ namespace STCommander
             query += $"INSERT INTO Contract (id, factionSymbol, type, accepted, fulfilled, deadlineToAccept, lastEdited) VALUES ('{id}','{factionSymbol}','{type}',"
                 + $"{(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{(deadlineToAccept - DateTime.UnixEpoch).TotalSeconds},unixepoch(now));\n";
             query += "COMMIT;\n"; // Send it!
-            return await DatabaseManager.instance.WriteQuery(query) > 0;
+            return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
 
         public Contract( List<object> p, List<List<object>> deliverGoods) {

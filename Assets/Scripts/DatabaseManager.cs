@@ -4,6 +4,7 @@ using UnityEngine;
 using Mono.Data.Sqlite;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace STCommander
 {
@@ -51,13 +52,17 @@ namespace STCommander
             OnDestroy();
         }
 
-        public async Task<List<List<object>>> SelectQuery( string query ) {
+        public async Task<List<List<object>>> SelectQuery( string query, CancellationToken cancel ) {
             SqliteCommand command = new SqliteCommand(query);
             List<List<object>> returnValues = new List<List<object>>();
             List<object> row = new List<object>();
             sqlConnection.Open();
-            IDataReader reader = await command.ExecuteReaderAsync();
+            IDataReader reader = await command.ExecuteReaderAsync(cancel);
             while(reader.Read()) {
+                if(cancel.IsCancellationRequested) {
+                    // Stop reading if we've cancelled.
+                    break;
+                }
                 row.Clear();
                 for(int i = 0; i < reader.FieldCount; i++) {
                     row.Add(reader.GetValue(i));
@@ -67,17 +72,19 @@ namespace STCommander
             reader.Dispose();
             await command.DisposeAsync();
             sqlConnection.Close();
+            if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
             if(sendSqlToLog)
                 Debug.Log($"DatabaseManager::SelectQuery() -- Query parsed. \nIn: {query}\nOut:{returnValues}");
             return returnValues;
         }
 
-        public async Task<int> WriteQuery( string query ) {
+        public async Task<int> WriteQuery( string query, CancellationToken cancel ) {
             SqliteCommand command = new SqliteCommand(query);
             sqlConnection.Open();
-            int result = await command.ExecuteNonQueryAsync();
+            int result = await command.ExecuteNonQueryAsync(cancel);
             await command.DisposeAsync();
             sqlConnection.Close();
+            if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
             if(sendSqlToLog)
                 Debug.Log($"DatabaseManager::WriteQuery() -- Query parsed. \nIn: {query}\nOut:{result}");
             return result;

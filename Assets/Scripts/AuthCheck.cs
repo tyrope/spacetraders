@@ -108,7 +108,8 @@ namespace STCommander
                 loginErrorTime = 2f;
                 return;
             }
-            await agentInfo.SaveToCache();
+            await agentInfo.SaveToCache(AsyncCancelToken.Token);
+            if(AsyncCancelToken.IsCancellationRequested) { return; }
             if(useSavedToken == false) {
                 PlayerPrefs.SetString("AuthToken", authToken);
                 PlayerPrefs.Save();

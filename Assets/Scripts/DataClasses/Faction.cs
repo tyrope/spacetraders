@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -16,7 +17,7 @@ namespace STCommander
         public bool isRecruiting;
 
 
-        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
+        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge, CancellationToken cancel ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
 
             string factionSymbol = "";
@@ -25,7 +26,8 @@ namespace STCommander
                 factionSymbol = $" AND Faction.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
             }
 
-            List<List<object>> factions = await DatabaseManager.instance.SelectQuery($"SELECT symbol, name, description, headquarters, isRecruiting FROM Faction WHERE lastEdited<{highestUnixTimestamp}" + factionSymbol);
+            List<List<object>> factions = await DatabaseManager.instance.SelectQuery($"SELECT symbol, name, description, headquarters, isRecruiting FROM Faction WHERE lastEdited<{highestUnixTimestamp}" + factionSymbol, cancel);
+            if(cancel.IsCancellationRequested) { return default; }
             if(factions.Count == 0) {
                 Debug.Log($"Faction::LoadFromCache() -- No results.");
                 return null;
@@ -34,17 +36,18 @@ namespace STCommander
             List<List<object>> traits;
             foreach(List<object> p in factions) {
                 traits = await DatabaseManager.instance.SelectQuery("SELECT FactionTrait.symbol, FactionTrait.name, FactionTrait.description FROM FactionTrait WHERE "
-                    + $"FactionTrait.symbol=FactionTrait_Faction_relationship.trait AND FactionTrait_Faction_relationship.faction='{p[0]}';");
+                    + $"FactionTrait.symbol=FactionTrait_Faction_relationship.trait AND FactionTrait_Faction_relationship.faction='{p[0]}';", cancel);
+                if(cancel.IsCancellationRequested) { return default; }
                 ret.Add(new Faction(p, traits));
             }
             return ret;
         }
 
-        public async Task<bool> SaveToCache() {
+        public async Task<bool> SaveToCache(CancellationToken cancel) {
             // Traits
             string query = $"INSERT OR IGNORE INTO FactionTrait (symbol, name, description) VALUES";
             foreach(Trait t in traits) {
-                    query += $"('{t.symbol}', '{t.name}', '{t.description}',";
+                    query += $"('{t.symbol}', '{t.name}', '{t.description}'),";
             }
             query = query[0..^1] + ";\n"; // Replace last comma with a semicolon.
 
@@ -54,7 +57,7 @@ namespace STCommander
                 + ",unixepoch(now));";
 
             // Send it!
-            return await DatabaseManager.instance.WriteQuery(query) > 0;
+            return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
         public Faction( List<object> p, List<List<object>> traitList ) {
             symbol = (string) p[0];

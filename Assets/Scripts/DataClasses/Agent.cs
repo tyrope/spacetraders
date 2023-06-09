@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -13,9 +14,10 @@ namespace STCommander
         public int credits;
         public string StartingFaction;
 
-        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge ) {
+        public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge, CancellationToken cancel ) {
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-            List<List<object>> result = await DatabaseManager.instance.SelectQuery($"SELECT accountId, symbol, headquarters, credits, startingFaction FROM Agent WHERE lastEdited<{highestUnixTimestamp} LIMIT 1");
+            List<List<object>> result = await DatabaseManager.instance.SelectQuery($"SELECT accountId, symbol, headquarters, credits, startingFaction FROM Agent WHERE lastEdited<{highestUnixTimestamp} LIMIT 1", cancel);
+            if(cancel.IsCancellationRequested) { return null; }
             if(result.Count != 1) {
                 Debug.LogError($"Agent::LoadFromCache() -- Wrong amount of results: {result.Count}.");
                 return null;
@@ -23,11 +25,11 @@ namespace STCommander
             return new List<IDataClass>() { new Agent(result[0]) };
         }
 
-        public async Task<bool> SaveToCache() {
+        public async Task<bool> SaveToCache( CancellationToken cancel ) {
             return await DatabaseManager.instance.WriteQuery(
                 $"INSERT INTO Agent (accountId, symbol, headquarters, credits, startingFaction, lastEdited) VALUES ('"
                 + $"{accountId}', '{symbol}', '{headquarters}', {credits}, '{StartingFaction}', unixepoch(now))"
-                + "ON CONFLICT(symbol) DO UPDATE SET credits=excluded.credits, lastEdited=excluded.lastEdited;") > 0;
+                + "ON CONFLICT(symbol) DO UPDATE SET credits=excluded.credits, lastEdited=excluded.lastEdited;", cancel) > 0;
         }
 
         private Agent( List<object> fields ) {
