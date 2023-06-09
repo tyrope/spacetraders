@@ -86,7 +86,9 @@ namespace STCommander
         public float GetMapScale() {
             if(SelectedSystem != null) {
                 float maxMagnitude = 0f;
-                foreach(Waypoint wp in SelectedSystem.waypoints) {
+                Waypoint wp;
+                foreach(string symbol in SelectedSystem.waypoints) {
+                    wp = Waypoint.Instances[symbol];
                     float mag = new Vector2(wp.x, wp.y).magnitude;
                     if(mag > maxMagnitude) { maxMagnitude = mag; }
                 }
@@ -238,15 +240,13 @@ namespace STCommander
             Waypoint wp;
             ServerResult result;
             for(int i = 0; i < sys.waypoints.Count; i++) {
-                (result, wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                (result, wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i]}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
                 if(AsyncCancelToken.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) {
-                    Debug.LogError($"Failed to load waypoint {sys.waypoints[i].symbol}\n{result}");
+                    Debug.LogError($"Failed to load waypoint {sys.waypoints[i]}\n{result}");
                     // Skip waypoints that error for some reason.
                     continue;
                 }
-                // Update the system in memory.
-                if(wp != sys.waypoints[i]) { sys.waypoints[i] = wp; }
                 // Send it.
                 SpawnWaypoint(wp, solarSystemObjects[sys].transform.Find("Waypoints"));
             }
@@ -293,10 +293,10 @@ namespace STCommander
 
             Waypoint orbital;
             for(int i = 0; i < wp.orbitals.Length; i++) {
-                (result, orbital) = await ServerManager.RequestSingle<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.orbitals[i].symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                (result, orbital) = await ServerManager.RequestSingle<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.orbitals[i]}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
                 if(AsyncCancelToken.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) {
-                    Debug.LogError($"Failed to load waypoint {wp.orbitals[i].symbol}\n{result}");
+                    Debug.LogError($"Failed to load waypoint {wp.orbitals[i]}\n{result}");
                     // Skip waypoints that error for some reason.
                     continue;
                 }

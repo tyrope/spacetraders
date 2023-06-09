@@ -92,10 +92,10 @@ namespace STCommander
             bool deptWithinOrbitals = ship.nav.route.departure == mapManager.SelectedWaypoint.symbol;
             bool destWithinOrbitals = ship.nav.route.destination == mapManager.SelectedWaypoint.symbol;
             //Not parked at the selection... Grab it's orbitals.
-            foreach(Waypoint.Orbital o in mapManager.SelectedWaypoint.orbitals) {
+            foreach(string o in mapManager.SelectedWaypoint.orbitals) {
                 // Are we parked?
                 if(ship.nav.status != ShipNavigation.Status.IN_TRANSIT) {
-                    if(o.symbol == ship.nav.waypointSymbol) {
+                    if(o == ship.nav.waypointSymbol) {
                         // We're parked here! Display.
                         await SetSolarPosition();
                         return;
@@ -106,8 +106,8 @@ namespace STCommander
                 }
 
                 // We're in transit.
-                deptWithinOrbitals = deptWithinOrbitals || o.symbol == ship.nav.route.departure;
-                destWithinOrbitals = destWithinOrbitals || o.symbol == ship.nav.route.destination;
+                deptWithinOrbitals = deptWithinOrbitals || o == ship.nav.route.departure;
+                destWithinOrbitals = destWithinOrbitals || o == ship.nav.route.destination;
                 if(deptWithinOrbitals && destWithinOrbitals) {
                     // And both departure and destination is within view.
                     await SetSolarPosition();

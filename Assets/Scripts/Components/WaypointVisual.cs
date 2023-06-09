@@ -61,18 +61,17 @@ namespace STCommander
             gen.Find("Symbol").GetComponent<TMP_Text>().text = WaypointSymbolEnd;
             tempValue = waypoint.type.ToString();
             gen.Find("Type").GetComponent<TMP_Text>().text = tempValue[0].ToString() + tempValue.Replace('_', ' ').Substring(1).ToLower();
-            if(waypoint.faction == null) {
+            if(waypoint.faction == null || waypoint.faction.Length == 0) {
                 tempValue = "Unclaimed";
-            } else if(waypoint.faction.name != null) {
-                tempValue = "Claimed by:\n" + waypoint.faction.name;
+            } else if(Faction.Instances[waypoint.faction].name != null) {
+                tempValue = "Claimed by:\n" + Faction.Instances[waypoint.faction].name;
             } else {
                 Faction f;
-                (res, f) = await ServerManager.RequestSingle<Faction>($"factions/{waypoint.faction.symbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                (res, f) = await ServerManager.RequestSingle<Faction>($"factions/{waypoint.faction}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                 if(res.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError("WaypointVisual:SetLabelInfo() - Failed to fetch claimant info. Display symbol instead of name.");
-                    tempValue = "Claimed by:\n" + waypoint.faction.symbol;
+                    tempValue = "Claimed by:\n" + waypoint.faction;
                 } else {
-                    waypoint.faction = f;
                     tempValue = "Claimed by:\n" + f.name;
                 }
             }
@@ -81,16 +80,16 @@ namespace STCommander
             if(waypoint.chart == null) {
                 tempValue = "Uncharted";
             } else {
-                if(waypoint.chart.submittedBy == waypoint.faction.symbol) {
+                if(waypoint.chart.submittedBy == waypoint.faction) {
                     // Easy!
-                    tempValue = "Charted by:\n" + waypoint.faction.name;
+                    tempValue = "Charted by:\n" + Faction.Instances[waypoint.faction].name;
                 } else {
                     // We gotta grab the Faction info.
                     List<Faction> lf;
                     (res, lf) = await ServerManager.RequestList<Faction>($"factions?limit=20", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                     if(res.result != ServerResult.ResultType.SUCCESS) {
                         Debug.LogError($"WaypointVisual:SetLabelInfo() - Failed to fetch charter info. Display symbol ({waypoint.chart.submittedBy}) instead of name.");
-                        tempValue = "Charted by:\n" + waypoint.faction.symbol;
+                        tempValue = "Charted by:\n" + waypoint.faction;
                     } else {
                         tempValue = null;
                         foreach(Faction f in lf) {
@@ -132,10 +131,12 @@ namespace STCommander
         private void SetParentOrbit() {
             if(mapManager.SelectedSystem != null) {
                 // Main star is the middle point.
-                foreach(Waypoint wp in mapManager.SelectedSystem.waypoints) {
+                Waypoint wp;
+                foreach(string wpsym in mapManager.SelectedSystem.waypoints) {
+                    wp = Waypoint.Instances[wpsym];
                     if(wp.orbitals != null) {
                         for(int i = 0; i < wp.orbitals.Length; i++) {
-                            if(wp.orbitals[i].symbol == waypoint.symbol) {
+                            if(wp.orbitals[i] == waypoint.symbol) {
                                 parentOrbit = transform.parent.Find(wp.symbol);
                                 SatelliteIndex = i;
                                 return;
@@ -148,10 +149,8 @@ namespace STCommander
                 if(mapManager.SelectedWaypoint == waypoint) {
                     return; // We are the middle point.
                 }
-                Waypoint.Orbital o;
                 for(int i = 0; i < mapManager.SelectedWaypoint.orbitals.Length; i++) {
-                    o = mapManager.SelectedWaypoint.orbitals[i];
-                    if(o.symbol == waypoint.symbol) {
+                    if(mapManager.SelectedWaypoint.orbitals[i] == waypoint.symbol) {
                         parentOrbit = transform.parent.Find(mapManager.SelectedWaypoint.symbol);
                         SatelliteIndex = i;
                         break;

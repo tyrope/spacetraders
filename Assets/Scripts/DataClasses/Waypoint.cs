@@ -1,14 +1,12 @@
 using System;
+using System.Collections.Generic;
 
 namespace STCommander
 {
     public class Waypoint
     {
-        public class Orbital
-        {
-            public string symbol;
-            public override string ToString() => symbol;
-        }
+        public readonly static Dictionary<string, Waypoint> Instances = new Dictionary<string, Waypoint>();
+
         public class Chart
         {
             public string waypointSymbol;
@@ -21,10 +19,11 @@ namespace STCommander
         public string systemSymbol;
         public int x;
         public int y;
-        public Orbital[] orbitals;
-        public Faction faction;
+        public string[] orbitals;
+        public string faction;
         public Trait[] traits;
         public Chart chart;
+
         public override string ToString() {
             string retString = $"{type} {symbol}@[{x},{y}]";
             if(faction != null) {
@@ -34,7 +33,7 @@ namespace STCommander
                 retString += $"\nChart:{chart}";
             }
             if(orbitals != null) {
-                retString += $"\nChild bodies:{string.Concat<Orbital>(orbitals)}";
+                retString += $"\nChild bodies:{string.Join(", ", orbitals)}";
             }
             if(traits != null) {
                 retString += $"\nTraits:{string.Concat<Trait>(traits)}";

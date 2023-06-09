@@ -145,19 +145,20 @@ namespace STCommander
                     return "ERR_OWNER_UNKNOWN";
                 }
             }
-            foreach(Faction f in system.factions) {
-                if(f.name != null) {
-                    owners.Add(f.name);
+
+            Faction f;
+            foreach(string fsym in system.factions) {
+                if(Faction.Instances.ContainsKey(fsym)) {
+                    owners.Add(Faction.Instances[fsym].name);
                 } else {
-                    Faction fac;
-                    (res, fac) = await ServerManager.RequestSingle<Faction>($"factions/{f.symbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                    (res, f) = await ServerManager.RequestSingle<Faction>($"factions/{fsym}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
                     if(AsyncCancelToken.IsCancellationRequested) { return default; }
                     if(res.result != ServerResult.ResultType.SUCCESS) {
                         // Fall back to the symbol we know.
-                        Debug.LogError($"SolarSystemVisual:GetSystemOwners() - Didn't get a success for faction {f.symbol}");
-                        owners.Add(f.symbol);
+                        Debug.LogError($"SolarSystemVisual:GetSystemOwners() - Didn't get a success for faction {fsym}");
+                        owners.Add(fsym);
                     }
-                    owners.Add(fac.name);
+                    owners.Add(f.name);
                 }
             }
             if(owners.Count > 0) {
