@@ -74,3 +74,4 @@ crashlytics-build.properties
 # Custom added
 authToken.txt
 example_db.db
+example_db.db-journal

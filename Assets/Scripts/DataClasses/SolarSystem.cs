@@ -42,11 +42,11 @@ namespace STCommander
             }
             string systemSymbol = "";
             if(endpoint.Trim('/') != "systems") {
-                // We're asking for a specific faction.
+                // We're asking for a specific system.
                 systemSymbol = $" WHERE System.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
             }
 
-            List<List<object>> systems = await DatabaseManager.instance.SelectQuery("SELECT symbol, sectorSymbol, type, x, y FROM Systems" + systemSymbol, cancel);
+            List<List<object>> systems = await DatabaseManager.instance.SelectQuery("SELECT symbol, sectorSymbol, type, x, y FROM System" + systemSymbol, cancel);
             if(cancel.IsCancellationRequested) { return default; }
             if(systems.Count == 0) {
                 Debug.Log($"SolarSystem::LoadFromCache() -- No results.");
@@ -72,9 +72,9 @@ namespace STCommander
             string query = $"INSERT OR IGNORE INTO System (symbol, sectorSymbol, type, x, y) VALUES ('{symbol}','{sectorSymbol}','{type}',{x},{y});";
             query += $"INSERT OR IGNORE INTO System_Faction_Relationship (system, faction) VALUES";
             foreach(string f in factions) {
-                //TODO You were working on this.
-                throw new NotImplementedException();
+                query += $"('{symbol}','{f}'),";
             }
+            query = query[0..^1] + ";";
 
             // Send it!
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
