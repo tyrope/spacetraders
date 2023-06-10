@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -66,10 +67,9 @@ namespace STCommander
             headquarters = (string) p[3];
             isRecruiting = (int) p[4] == 1;
             traits = new List<Trait>();
-            foreach(List<object> trait in traitList) {
-                traits.Add(new Trait(trait));
+            foreach(List<string> trait in traitList.Cast<List<string>>()) {
+                traits.Add(Trait.GetTrait(trait[0], trait[1], trait[2]));
             }
-
             Instances.Add(symbol, this);
         }
     }
