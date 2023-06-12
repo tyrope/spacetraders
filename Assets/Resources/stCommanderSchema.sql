@@ -100,12 +100,7 @@ CREATE TABLE IF NOT EXISTS Market (
 CREATE TABLE IF NOT EXISTS Market_TradeGood_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
     tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
-    type TEXT NOT NULL, --Import, Export, Exchange
-	UNIQUE(market, tradeGood)
-);
-CREATE TABLE IF NOT EXISTS Market_imports_relationship (
-    market TEXT NOT NULL REFERENCES Market(symbol),
-    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
+    type TEXT NOT NULL, --TODO: Filter to only imports, exports, exchange. (Or maybe use a -1,0,+1 int instead?)
 	UNIQUE(market, tradeGood)
 );
 CREATE TABLE IF NOT EXISTS Market_transactions_relationship (
