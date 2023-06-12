@@ -97,17 +97,13 @@ CREATE TABLE IF NOT EXISTS Market (
     symbol TEXT NOT NULL PRIMARY KEY REFERENCES Waypoint(symbol),
     lastEdited INTEGER NOT NULL
 );
-CREATE TABLE IF NOT EXISTS Market_exports_relationship (
+CREATE TABLE IF NOT EXISTS Market_TradeGood_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
     tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
+    type TEXT NOT NULL, --Import, Export, Exchange
 	UNIQUE(market, tradeGood)
 );
 CREATE TABLE IF NOT EXISTS Market_imports_relationship (
-    market TEXT NOT NULL REFERENCES Market(symbol),
-    tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
-	UNIQUE(market, tradeGood)
-);
-CREATE TABLE IF NOT EXISTS Market_exchange_relationship (
     market TEXT NOT NULL REFERENCES Market(symbol),
     tradeGood TEXT NOT NULL REFERENCES TradeGood(symbol),
 	UNIQUE(market, tradeGood)
