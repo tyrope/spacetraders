@@ -16,12 +16,10 @@ namespace STCommander
             string contractID = "";
             if(endpoint.Trim('/') != "my/contracts") {
                 // We're asking for a specific contract.
-                contractID = $" AND Contract.id='{endpoint.Split('/')[^1]}' LIMIT 1";
+                contractID = $" AND id='{endpoint.Split('/')[^0]}' LIMIT 1";
             }
 
-            List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT Contract.id,Contract.factionSymbol,Contract.type,Contract.accepted,Contract.fulfilled,Contract.deadlineToAccept,Terms.rowid,"
-                + "Terms.deadline,Payment.rowid,Payment.onAccepted,Payment.onFulfilled FROM Contract LEFT JOIN ContractTerms Terms ON Contract.terms=Terms.rowid "
-                + "LEFT JOIN ContractPayment Payment ON Terms.payment=Payment.rowid WHERE Contract.lastEdited<" + highestUnixTimestamp + contractID, cancel);
+            List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT id, factionSymbol, type, deadline, onAccepted, onFulfilled, accepted, fulfilled, deadlineToAccept FROM Contract WHERE lastEdited<" + highestUnixTimestamp + contractID, cancel);
             if(contracts.Count == 0) {
                 Debug.Log($"Contract::LoadFromCache() -- No results.");
                 return null;
@@ -29,9 +27,7 @@ namespace STCommander
             List<IDataClass> ret = new List<IDataClass>();
             List<List<object>> deliverGoods;
             foreach(List<object> p in contracts) {
-                deliverGoods = await DatabaseManager.instance.SelectQuery("SELECT Good.rowid, Good.tradeSymbol, Good.destinationSymbol, Good.unitsRequired, Good.unitsFulfilled FROM Contract "+
-                    "LEFT JOIN ContractTerms Terms ON Terms.rowid = Contract.terms LEFT JOIN ContractDeliverGood_ContractTerms_relationship Relationship ON Terms.rowid = Relationship.terms "+
-                    $"LEFT JOIN ContractDeliverGood Good ON Good.rowid = Relationship.good WHERE Contract.id = '{p[0]}';", cancel);
+                deliverGoods = await DatabaseManager.instance.SelectQuery($"SELECT tradeSymbol, destinationSymbol, unitsRequired, unitsFulfilled FROM ContractDeliverGood WHERE contractId = '{p[0]}';", cancel);
                 ret.Add(new Contract(p, deliverGoods));
             }
             return ret;
@@ -40,45 +36,33 @@ namespace STCommander
         public async Task<bool> SaveToCache( CancellationToken cancel ) {
             string query = "BEGIN TRANSACTION;\n"; // This is going to be a big update. Do not let anybody else interfere.
 
-            // First, our delivery goods.
-            query += "INSERT INTO ContractDeliverGood (rowid, tradeSymbol, destinationSymbol, unitsRequired, unitsFulfilled) VALUES ";
+            // ContractDeliverGood: contractId (TEXT NOT NULL), tradeSymbol (TEXT NOT NULL), destinationSymbol (TEXT NOT NULL), unitsRequired (INTEGER NOT NULL), unitsFulfilled (INTEGER NOT NULL)
+            query += "INSERT INTO ContractDeliverGood (contractId, tradeSymbol, destinationSymbol, unitsRequired, unitsFulfilled) VALUES ";
             foreach(Terms.Deliver good in terms.deliver) {
-                query += $"({good.rowid}, '{good.tradeSymbol}', '{good.destinationSymbol}', {good.unitsRequired}, {good.unitsFulfilled}),";
+                query += $"('{id}','{good.tradeSymbol}', '{good.destinationSymbol}', {good.unitsRequired}, {good.unitsFulfilled}),";
             }
-            query = query[0..^1] + "ON CONFLICT(rowid) DO UPDATE SET unitsFulfilled=excluded.unitsFulfilled;\n"; // Replace last comma with the conflict clause.
+            query = query[0..^1] + "ON CONFLICT(contractId, tradeSymbol, destinationSymbol) DO UPDATE SET unitsFulfilled=excluded.unitsFulfilled;\n"; // Replace last comma with the conflict clause.
 
-            // Then the delivery goods relationship. Just in case it doesn't exist yet.
-            query += "INSERT OR IGNORE INTO ContractDeliverGood_ContractTerms_relationship (good, terms) VALUES ";
-            foreach(Terms.Deliver good in terms.deliver) {
-                query += $"({good.rowid}, {terms.rowid})";
-            }
-            query = query[0..^1] + ";\n"; // Replace last comma with a semicolon.
+            // Contract: id (TEXT NOT NULL), factionSymbol (TEXT NOT NULL), type (TEXT NOT NULL), deadline (INTEGER NOT NULL), onAccepted (INTEGER NOT NULL),
+            // onFulfilled (INTEGER NOT NULL), accepted (INTEGER NOT NULL), fulfilled (INTEGER NOT NULL), deadlineToAccept (INTEGER NOT NULL), lastEdited (INTEGER NOT NULL)
+            query += "INSERT INTO Contract (id, factionSymbol, type, deadline, onAccepted, onFulfilled, accepted, fulfilled, deadlineToAccept, lastEdited) VALUES ";
+            query += $"('{id}','{factionSymbol}','{type}',{terms.deadline}, {terms.payment.onAccepted}, {terms.payment.onFulfilled}, {(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{(deadlineToAccept - DateTime.UnixEpoch).TotalSeconds},STRFTIME('%s'));\n";
 
-            // Payment.
-            query += $"INSERT OR IGNORE INTO ContractPayment (rowid, onAccepted, onFulfilled) VALUES ({terms.payment.rowid}, {terms.payment.onAccepted}, {terms.payment.onFulfilled});";
-
-            // Terms.
-            query += $"INSERT OR IGNORE INTO ContractTerms (rowid, deadline) VALUES ({terms.rowid}, {terms.deadline});\n";
-
-            // Contract root.
-            query += $"INSERT INTO Contract (id, factionSymbol, type, accepted, fulfilled, deadlineToAccept, lastEdited) VALUES ('{id}','{factionSymbol}','{type}',"
-                + $"{(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{(deadlineToAccept - DateTime.UnixEpoch).TotalSeconds},STRFTIME('%s'));\n";
             query += "COMMIT;\n"; // Send it!
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
 
         public Contract( List<object> p, List<List<object>> deliverGoods) {
+            //id, factionSymbol, type, deadline, onAccepted, onFulfilled, accepted, fulfilled, deadlineToAccept, lastEdited
             id = (string) p[0];
             factionSymbol = (string) p[1];
             type = Enum.Parse<ContractType>((string) p[2]);
-            accepted = (int) p[3] == 1 ? true : false;
-            fulfilled = (int) p[4] == 1 ? true : false;
-            deadlineToAccept = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[5]);
-            terms.rowid = (int) p[6];
-            terms.deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[7]);
-            terms.payment.rowid = (int) p[8];
-            terms.payment.onAccepted = (int) p[9];
-            terms.payment.onFulfilled = (int) p[10];
+            terms.deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[3]);
+            terms.payment.onAccepted = (int) p[4];
+            terms.payment.onFulfilled = (int) p[5];
+            accepted = (int) p[6] == 1;
+            fulfilled = (int) p[7] == 1;
+            deadlineToAccept = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[8]);
             foreach(List<object> good in deliverGoods) {
                 terms.deliver.Add(new Terms.Deliver(good));
             }
@@ -92,7 +76,6 @@ namespace STCommander
         {
             public class Payment
             {
-                protected internal int rowid;
                 public int onAccepted;
                 public int onFulfilled;
 
@@ -100,24 +83,22 @@ namespace STCommander
             }
             public class Deliver
             {
-                protected internal int rowid;
                 public string tradeSymbol;
                 public string destinationSymbol;
                 public int unitsRequired;
                 public int unitsFulfilled;
 
                 public Deliver( List<object> good ) {
-                    rowid = (int) good[0];
                     tradeSymbol = (string) good[1];
                     destinationSymbol = (string) good[2];
                     unitsRequired = (int) good[3];
                     unitsFulfilled = (int) good[4];
                 }
+                public Deliver() {}
 
                 public override string ToString() => $"{unitsFulfilled}/{unitsRequired} {tradeSymbol}→{destinationSymbol}";
             }
 
-            protected internal int rowid;
             public DateTime deadline;
             public Payment payment;
             public List<Deliver> deliver;

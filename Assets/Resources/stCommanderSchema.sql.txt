@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS Contract (
     id TEXT NOT NULL PRIMARY KEY,
     factionSymbol TEXT NOT NULL REFERENCES Faction(Symbol),
     type TEXT NOT NULL REFERENCES ContractType(value),
-    terms INTEGER NOT NULL REFERENCES ContractTerms(rowid),
+    deadline INTEGER NOT NULL,
+    onAccepted INTEGER NOT NULL,
+    onFulfilled INTEGER NOT NULL,
     accepted INTEGER NOT NULL CHECK (accepted IN (0,1)),
     fulfilled INTEGER NOT NULL CHECK (fulfilled IN (0,1)),
     deadlineToAccept INTEGER NOT NULL,
@@ -32,22 +34,12 @@ CREATE TABLE IF NOT EXISTS ContractType (
     value TEXT NOT NULL PRIMARY KEY
 );
 CREATE TABLE IF NOT EXISTS ContractDeliverGood (
-    tradeSymbol TEXT NOT NULL REFERENCES TradeGood(symbol),
+	contractId TEXT NOT NULL REFERENCES Contract(id),
+    tradeSymbol TEXT NOT NULL REFERENCES TradeSymbol(value),
     destinationSymbol TEXT NOT NULL REFERENCES Waypoint(symbol),
     unitsRequired INTEGER NOT NULL,
-    unitsFulfilled INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS ContractPayment (
-    onAccepted INTEGER NOT NULL,
-    onFulfilled INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS ContractTerms (
-    deadline INTEGER NOT NULL,
-    payment INTEGER NOT NULL REFERENCES ContractPayment(rowid)
-);
-CREATE TABLE IF NOT EXISTS ContractDeliverGood_ContractTerms_relationship (
-    good INTEGER NOT NULL UNIQUE REFERENCES ContractDeliverGood(rowid),
-    terms INTEGER NOT NULL REFERENCES ContractTerms(rowid)
+    unitsFulfilled INTEGER NOT NULL,
+	UNIQUE(contractId, tradeSymbol, destinationSymbol)
 );
 CREATE TABLE IF NOT EXISTS Cooldown (
     shipSymbol TEXT NOT NULL PRIMARY KEY REFERENCES Ship(symbol),
