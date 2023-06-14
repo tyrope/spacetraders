@@ -81,7 +81,7 @@ namespace STCommander
 
         
         private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO API Verbosity switch lives here.
-        private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
+        private static readonly LogVerbosity sendResultsToLog = LogVerbosity.EVERYTHING;
 
         public async static Task<(ServerResult, List<T>)> RequestList<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
