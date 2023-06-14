@@ -12,7 +12,6 @@ namespace STCommander
     {
         public static DatabaseManager instance;
 
-        private readonly string filePath = Path.Combine(Application.persistentDataPath, "database.sqlite3");
         private readonly IDbConnection sqlConnection = new SqliteConnection();
 
         private readonly bool sendSqlToLog = true; //TODO Sql Verbosity lives here.
@@ -22,18 +21,21 @@ namespace STCommander
         /// </summary>
         /// <returns>A closed connection to the SQL database.</returns>
         private void CreateDatabaseConnection() {
-            sqlConnection.ConnectionString = filePath;
+            string filePath = Path.Combine(Application.persistentDataPath, "stCommander.db");
+            sqlConnection.ConnectionString = "URI=file:" + filePath;
             if(!File.Exists(filePath)) {
                 SqliteConnection.CreateFile(filePath);
-                SqliteCommand sqlCommand = new SqliteCommand(Resources.Load<TextAsset>("stCommanderSchema.sql").text);
+                string query = Resources.Load<TextAsset>("stCommanderSchema.sql").text;
+                SqliteCommand sqlCommand = new SqliteCommand(query);
                 sqlConnection.Open();
+                sqlCommand.Connection = (SqliteConnection) sqlConnection;
                 sqlCommand.ExecuteNonQuery();
                 sqlCommand.Dispose();
                 sqlConnection.Close();
             }
         }
 
-        private void Start() {
+        private void Awake() {
             if(instance != null && instance != this) {
                 Debug.LogError("Two DatabaseManagers exist at the same time.");
                 DestroyImmediate(this);
@@ -57,6 +59,7 @@ namespace STCommander
             List<List<object>> returnValues = new List<List<object>>();
             List<object> row = new List<object>();
             sqlConnection.Open();
+            command.Connection = (SqliteConnection) sqlConnection;
             IDataReader reader = await command.ExecuteReaderAsync(cancel);
             while(reader.Read()) {
                 if(cancel.IsCancellationRequested) {
@@ -81,6 +84,7 @@ namespace STCommander
         public async Task<int> WriteQuery( string query, CancellationToken cancel ) {
             SqliteCommand command = new SqliteCommand(query);
             sqlConnection.Open();
+            command.Connection = (SqliteConnection) sqlConnection;
             int result = await command.ExecuteNonQueryAsync(cancel);
             await command.DisposeAsync();
             sqlConnection.Close();
@@ -93,6 +97,7 @@ namespace STCommander
         public async Task<int> GetLatestRowid( CancellationToken cancel ) {
             SqliteCommand command = new SqliteCommand("select last_insert_rowid()");
             sqlConnection.Open();
+            command.Connection = (SqliteConnection) sqlConnection;
             int result = (int) await command.ExecuteScalarAsync();
             await command.DisposeAsync();
             sqlConnection.Close();
