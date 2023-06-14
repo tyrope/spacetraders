@@ -89,13 +89,14 @@ namespace STCommander
 
         public async void FillFactionDropdown() {
             (ServerResult res, List<Faction> factions) = await ServerManager.RequestList<Faction>("factions", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
-            if(AsyncCancel.IsCancellationRequested) { return; }
+            if(res.result != ServerResult.ResultType.SUCCESS || AsyncCancel.IsCancellationRequested) { return; }
             List<string> recruiting = new List<string>();
             foreach(Faction f in factions) {
                 if(f.isRecruiting) {
                     recruiting.Add(f.symbol);
                 }
             }
+            recruiting.Sort();
             FactionDropdown.AddOptions(recruiting);
         }
 
