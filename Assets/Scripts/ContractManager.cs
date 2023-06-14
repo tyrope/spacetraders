@@ -8,7 +8,7 @@ namespace STCommander
     public class ContractManager : MonoBehaviour
     {
         public static List<string> Contracts = new List<string>();
-        private static readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+        private static readonly CancellationTokenSource AsyncCancel = new CancellationTokenSource();
 
         // Start is called before the first frame update
         void Start() {
@@ -16,7 +16,7 @@ namespace STCommander
         }
 
         private void OnDestroy() {
-            AsyncCancelToken?.Cancel();
+            AsyncCancel?.Cancel();
         }
 
         private void OnApplicationQuit() {
@@ -24,16 +24,16 @@ namespace STCommander
         }
 
         private async void LoadContracts() {
-            (ServerResult result, List<Contract> contractList) = await ServerManager.RequestList<Contract>("my/contracts?limit=20", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested || result.result != ServerResult.ResultType.SUCCESS) { return; }
+            (ServerResult result, List<Contract> contractList) = await ServerManager.RequestList<Contract>("my/contracts?limit=20", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested || result.result != ServerResult.ResultType.SUCCESS) { return; }
             foreach(Contract contract in contractList) {
                 Contracts.Add(contract.id);
             }
         }
 
         public static async Task<Contract> GetContract( string ID ) {
-            (ServerResult result, Contract contract) = await ServerManager.RequestSingle<Contract>("my/contracts/" + ID, new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested || result.result != ServerResult.ResultType.SUCCESS) { return null; }
+            (ServerResult result, Contract contract) = await ServerManager.RequestSingle<Contract>("my/contracts/" + ID, new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested || result.result != ServerResult.ResultType.SUCCESS) { return null; }
             return contract;
         }
     }

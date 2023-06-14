@@ -38,7 +38,7 @@ namespace STCommander
                 Debug.LogError("Two DatabaseManagers exist at the same time.");
                 DestroyImmediate(this);
                 return;
-            }else if (instance == null) {
+            } else if(instance == null) {
                 instance = this;
             }
             CreateDatabaseConnection();
@@ -90,7 +90,7 @@ namespace STCommander
             return result;
         }
 
-        public async Task<int> GetLatestRowid(CancellationToken cancel ) {
+        public async Task<int> GetLatestRowid( CancellationToken cancel ) {
             SqliteCommand command = new SqliteCommand("select last_insert_rowid()");
             sqlConnection.Open();
             int result = (int) await command.ExecuteScalarAsync();

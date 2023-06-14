@@ -25,7 +25,7 @@ namespace STCommander
         private int displayedSystems;
 
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
-        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource AsyncCancel = new CancellationTokenSource();
 
         void Start() {
             SystemContainer = new GameObject("SystemContainer").transform;
@@ -43,7 +43,7 @@ namespace STCommander
             MapControls();
         }
         private void OnDestroy() {
-            AsyncCancelToken.Cancel();
+            AsyncCancel?.Cancel();
         }
         private void OnApplicationQuit() {
             OnDestroy();
@@ -123,13 +123,13 @@ namespace STCommander
         private async void CreateMap( int retries = 0 ) {
             // Load the galaxy
             ServerResult result;
-            (result, solarSystems) = await ServerManager.RequestList<SolarSystem>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            (result, solarSystems) = await ServerManager.RequestList<SolarSystem>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested) { return; }
             if(result.result != ServerResult.ResultType.SUCCESS) {
                 Debug.LogError($"Failed to load systems.json\n{result}");
                 if(retries < 5) {
                     await Task.Delay(1000);
-                    if(AsyncCancelToken.IsCancellationRequested) { return; }
+                    if(AsyncCancel.IsCancellationRequested) { return; }
                     CreateMap(retries + 1);
                     return;
                 } else {
@@ -159,7 +159,7 @@ namespace STCommander
                     stopwatch.Stop();
                     stopwatch.Reset();
                     await Task.Yield();
-                    if(AsyncCancelToken.IsCancellationRequested) { return; }
+                    if(AsyncCancel.IsCancellationRequested) { return; }
                     stopwatch.Start();
                 }
             }
@@ -196,14 +196,14 @@ namespace STCommander
 
         private async Task CenterMapOnHQ() {
             // Center on the Player HQ.
-            (ServerResult result, Agent agent) = await ServerManager.RequestSingle<Agent>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            (ServerResult result, Agent agent) = await ServerManager.RequestSingle<Agent>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested) { return; }
             if(result.result == ServerResult.ResultType.SUCCESS) {
                 // Query the HQ waypoint for system name.
                 SolarSystem hq;
                 string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
-                (result, hq) = await ServerManager.RequestSingle<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                (result, hq) = await ServerManager.RequestSingle<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+                if(AsyncCancel.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
                 mapCenter = new Vector2(hq.x, hq.y);
             }
@@ -240,8 +240,8 @@ namespace STCommander
             Waypoint wp;
             ServerResult result;
             for(int i = 0; i < sys.waypoints.Count; i++) {
-                (result, wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i]}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                (result, wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{sys.symbol}/waypoints/{sys.waypoints[i]}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+                if(AsyncCancel.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError($"Failed to load waypoint {sys.waypoints[i]}\n{result}");
                     // Skip waypoints that error for some reason.
@@ -282,8 +282,8 @@ namespace STCommander
             SelectedWaypoint = wp;
 
             // Grab the latest info...
-            (ServerResult result, Waypoint updatedWp) = await ServerManager.RequestSingle<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            (ServerResult result, Waypoint updatedWp) = await ServerManager.RequestSingle<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.symbol}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested) { return; }
             if(result.result == ServerResult.ResultType.SUCCESS) {
                 wp = updatedWp;
             } // Else: Just use the old data...
@@ -293,8 +293,8 @@ namespace STCommander
 
             Waypoint orbital;
             for(int i = 0; i < wp.orbitals.Length; i++) {
-                (result, orbital) = await ServerManager.RequestSingle<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.orbitals[i]}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                (result, orbital) = await ServerManager.RequestSingle<Waypoint>($"systems/{wp.systemSymbol}/waypoints/{wp.orbitals[i]}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+                if(AsyncCancel.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError($"Failed to load waypoint {wp.orbitals[i]}\n{result}");
                     // Skip waypoints that error for some reason.

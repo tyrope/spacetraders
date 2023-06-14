@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using TMPro;
 using UnityEngine;
 
@@ -18,7 +17,6 @@ namespace STCommander
         private string WaypointSymbolEnd => waypoint.symbol.Split('-')[2];
 
         private bool IsSelected = false;
-        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         protected override float OrbitalPeriod => parentOrbit == null ? base.OrbitalPeriod : base.OrbitalPeriod * 2f;
 
@@ -67,7 +65,7 @@ namespace STCommander
                 tempValue = "Claimed by:\n" + Faction.Instances[waypoint.faction].name;
             } else {
                 Faction f;
-                (res, f) = await ServerManager.RequestSingle<Faction>($"factions/{waypoint.faction}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                (res, f) = await ServerManager.RequestSingle<Faction>($"factions/{waypoint.faction}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
                 if(res.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError("WaypointVisual:SetLabelInfo() - Failed to fetch claimant info. Display symbol instead of name.");
                     tempValue = "Claimed by:\n" + waypoint.faction;
@@ -86,7 +84,7 @@ namespace STCommander
                 } else {
                     // We gotta grab the Faction info.
                     List<Faction> lf;
-                    (res, lf) = await ServerManager.RequestList<Faction>($"factions?limit=20", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                    (res, lf) = await ServerManager.RequestList<Faction>($"factions?limit=20", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
                     if(res.result != ServerResult.ResultType.SUCCESS) {
                         Debug.LogError($"WaypointVisual:SetLabelInfo() - Failed to fetch charter info. Display symbol ({waypoint.chart.submittedBy}) instead of name.");
                         tempValue = "Charted by:\n" + waypoint.faction;
@@ -108,7 +106,7 @@ namespace STCommander
             if(waypoint.traits == null) {
                 // Fetch!
                 Waypoint wp;
-                (res, wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{waypoint.systemSymbol}/waypoints/{waypoint.symbol}", new TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancelToken);
+                (res, wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{waypoint.systemSymbol}/waypoints/{waypoint.symbol}", new TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancel.Token);
                 if(res.result != ServerResult.ResultType.SUCCESS) {
                     Debug.LogError("WaypointVisual:SetLabelInfo() - Failed to fetch Waypoint info. No traits can be displayed.");
                 } else {

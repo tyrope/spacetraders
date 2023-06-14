@@ -83,12 +83,12 @@ namespace STCommander
         private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO API Verbosity switch lives here.
         private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
 
-        public async static Task<(ServerResult, List<T>)> RequestList<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationTokenSource cancel, string payload = null ) where T : IDataClass {
+        public async static Task<(ServerResult, List<T>)> RequestList<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
 
             // Grab data from cache.
-            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge, cancel.Token);
+            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge, cancel);
             if(cancel.IsCancellationRequested) { return default; }
             if(cacheData != null && cacheData.Count > 0) {
                 // Success!
@@ -104,7 +104,7 @@ namespace STCommander
             // Save it to the Cache if successful.
             if(res.result == ServerResult.ResultType.SUCCESS) {
                 foreach(T r in result) {
-                    if(await r.SaveToCache(cancel.Token) == false) {
+                    if(await r.SaveToCache(cancel) == false) {
                         Debug.LogError("Failed to save to cache: " + r);
                     }
                 if(cancel.IsCancellationRequested) { return default; }
@@ -112,12 +112,12 @@ namespace STCommander
             }
             return (res, result); // Done!
         }
-        public async static Task<(ServerResult, T)> RequestSingle<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationTokenSource cancel, string payload = null ) where T : IDataClass {
+        public async static Task<(ServerResult, T)> RequestSingle<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
 
             // Grab data from cache.
-            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge, cancel.Token);
+            List<IDataClass> cacheData = await ((T) Activator.CreateInstance(typeof(T))).LoadFromCache(endpoint, maxAge, cancel);
             if(cancel.IsCancellationRequested) { return default; }
             if(cacheData != null) {
                 // Success!
@@ -136,13 +136,13 @@ namespace STCommander
 
             // Save it to the Cache if successful.
             if(res.result == ServerResult.ResultType.SUCCESS) {
-                await result.SaveToCache(cancel.Token);
+                await result.SaveToCache(cancel);
                 if(cancel.IsCancellationRequested) { return default; }
             }
             return (res, result); // Done!
         }
 
-        public async static Task<(ServerResult, T)> RequestByPassCache<T>( string endpoint, RequestMethod method, CancellationTokenSource cancel, string payload = null, string authToken = null ) {
+        public async static Task<(ServerResult, T)> RequestByPassCache<T>( string endpoint, RequestMethod method, CancellationToken cancel, string payload = null, string authToken = null ) {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
             string uri = Server + endpoint;

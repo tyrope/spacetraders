@@ -8,7 +8,6 @@ namespace STCommander
     public class ShipVisual : OrbitalVisual
     {
         public Ship ship;
-        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
 
         private float TimeSinceRefresh = 0f;
 
@@ -33,8 +32,8 @@ namespace STCommander
                 } else {
                     expiry = new TimeSpan(0, 0, 10);
                 }
-                (ServerResult res, Ship sh) = await ServerManager.RequestSingle<Ship>($"my/ships/{ship.symbol}", expiry, RequestMethod.GET, AsyncCancelToken);
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                (ServerResult res, Ship sh) = await ServerManager.RequestSingle<Ship>($"my/ships/{ship.symbol}", expiry, RequestMethod.GET, AsyncCancel.Token);
+                if(AsyncCancel.IsCancellationRequested) { return; }
                 if(res.result == ServerResult.ResultType.SUCCESS) {
                     ship = sh;
                 }
@@ -43,14 +42,6 @@ namespace STCommander
             // Deal with positioning.
             base.Update();
             await SetPosition();
-        }
-
-        void OnDestroy() {
-            AsyncCancelToken.Cancel();
-        }
-
-        void OnApplicationQuit() {
-            OnDestroy();
         }
 
         private async Task SetPosition() {
@@ -124,12 +115,12 @@ namespace STCommander
             ServerResult res;
 
             SolarSystem departureSystem;
-            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.departure}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
+            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.departure}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             SolarSystem destinationSystem;
-            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.destination}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
+            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.destination}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             Vector2 currPos;
             Vector2 from = new Vector2(departureSystem.x, departureSystem.y);

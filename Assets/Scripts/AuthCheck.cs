@@ -1,4 +1,3 @@
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
@@ -28,7 +27,7 @@ namespace STCommander
         public bool RevokeAuthorization = false;
         private float registerErrorTime = 0f;
         private float loginErrorTime = 0f;
-        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource AsyncCancel = new CancellationTokenSource();
 
         // Start is called before the first frame update
         void Start() {
@@ -58,7 +57,7 @@ namespace STCommander
         }
 
         private void OnDestroy() {
-            AsyncCancelToken.Cancel();
+            AsyncCancel?.Cancel();
         }
 
         private void OnApplicationQuit() {
@@ -78,7 +77,7 @@ namespace STCommander
             }
             Debug.Log($"Creating agent {name} in faction {faction}");
 
-            (ServerResult result, RegistrationResult reg) = await ServerManager.RequestByPassCache<RegistrationResult>("register", RequestMethod.POST, AsyncCancelToken, payload: req);
+            (ServerResult result, RegistrationResult reg) = await ServerManager.RequestByPassCache<RegistrationResult>("register", RequestMethod.POST, AsyncCancel.Token, payload: req);
             if(result.result != ServerResult.ResultType.SUCCESS) {
                 Debug.LogError($"Error creating agent:\n{result.details}");
                 registerErrorTime = 2f;
@@ -89,8 +88,8 @@ namespace STCommander
         }
 
         public async void FillFactionDropdown() {
-            (ServerResult res, List<Faction> factions) = await ServerManager.RequestList<Faction>("factions?limit=20", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            (ServerResult res, List<Faction> factions) = await ServerManager.RequestList<Faction>("factions?limit=20", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested) { return; }
             List<string> recruiting = new List<string>();
             foreach(Faction f in factions) {
                 if(f.isRecruiting) {
@@ -102,14 +101,14 @@ namespace STCommander
 
         public async void CheckAuthorization( bool useSavedToken = false ) {
             string authToken = useSavedToken ? PlayerPrefs.GetString("AuthToken") : TokenInputField.text;
-            (ServerResult result, Agent agentInfo) = await ServerManager.RequestByPassCache<Agent>("my/agent", RequestMethod.GET, AsyncCancelToken, null, authToken);
+            (ServerResult result, Agent agentInfo) = await ServerManager.RequestByPassCache<Agent>("my/agent", RequestMethod.GET, AsyncCancel.Token, null, authToken);
             if(result.result != ServerResult.ResultType.SUCCESS || agentInfo == null) {
                 Debug.LogError($"Error logging in:\n{result.details}");
                 loginErrorTime = 2f;
                 return;
             }
-            await agentInfo.SaveToCache(AsyncCancelToken.Token);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            await agentInfo.SaveToCache(AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested) { return; }
             if(useSavedToken == false) {
                 PlayerPrefs.SetString("AuthToken", authToken);
                 PlayerPrefs.Save();

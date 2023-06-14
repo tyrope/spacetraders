@@ -10,10 +10,10 @@ namespace STCommander
         public TMPro.TMP_InputField payload;
         public TMPro.TMP_Dropdown method;
 
-        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource AsyncCancel = new CancellationTokenSource();
 
         private void OnDestroy() {
-            AsyncCancelToken.Cancel();
+            AsyncCancel.Cancel();
         }
 
         private void OnApplicationQuit() {
@@ -33,10 +33,10 @@ namespace STCommander
         public async void CallAPI() {
             switch(method.value) {
                 case 0:
-                    await ServerManager.RequestByPassCache<object>(endpoint.text.Trim(),RequestMethod.GET, AsyncCancelToken, payload.text.Trim());
+                    await ServerManager.RequestByPassCache<object>(endpoint.text.Trim(),RequestMethod.GET, AsyncCancel.Token, payload.text.Trim());
                     break;
                 case 1:
-                    await ServerManager.RequestByPassCache<object>(endpoint.text.Trim(), RequestMethod.POST, AsyncCancelToken, payload.text.Trim());
+                    await ServerManager.RequestByPassCache<object>(endpoint.text.Trim(), RequestMethod.POST, AsyncCancel.Token, payload.text.Trim());
                     break;
                 default:
                     Debug.LogError("ConsoleController::CallAPI() - Unknown method:" + method.value);

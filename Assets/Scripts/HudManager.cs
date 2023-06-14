@@ -20,7 +20,7 @@ namespace STCommander
 
         private readonly Dictionary<string, GameObject> ShipGOs = new Dictionary<string, GameObject>();
         private readonly Dictionary<string, GameObject> ContractGOs = new Dictionary<string, GameObject>();
-        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource AsyncCancel = new CancellationTokenSource();
         private readonly float timeBetweenUpdates = 1f;
 
         // Start is called before the first frame update
@@ -45,7 +45,7 @@ namespace STCommander
         }
 
         private void OnDestroy() {
-            AsyncCancelToken.Cancel();
+            AsyncCancel?.Cancel();
         }
 
         private void OnApplicationQuit() {
@@ -53,8 +53,8 @@ namespace STCommander
         }
 
         private async void UpdateAgentInfo() {
-            (ServerResult result, Agent info) = await ServerManager.RequestSingle<Agent>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancelToken);
-            if(AsyncCancelToken.IsCancellationRequested == false && result.result == ServerResult.ResultType.SUCCESS) {
+            (ServerResult result, Agent info) = await ServerManager.RequestSingle<Agent>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
+            if(AsyncCancel.IsCancellationRequested == false && result.result == ServerResult.ResultType.SUCCESS) {
                 AgentInfoDisplay.text = $"Admiral {info.symbol} - Account balance: {info.credits:n0}Cr";
             }
         }
@@ -66,7 +66,7 @@ namespace STCommander
                 }
                 UpdateShipInfo(shipSymbol);
                 await Task.Yield();
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                if(AsyncCancel.IsCancellationRequested) { return; }
             }
         }
 
@@ -79,7 +79,7 @@ namespace STCommander
         private async void UpdateShipInfo( string shipSymbol ) {
             Transform trans = ShipGOs[shipSymbol].transform;
             Ship ship = await ShipManager.GetShip(shipSymbol);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            if(AsyncCancel.IsCancellationRequested) { return; }
             trans.Find("Registration").GetComponent<TMP_Text>().text = ship.registration.name;
             trans.Find("Role").GetComponent<TMP_Text>().text = ship.registration.role.ToString();
             trans.Find("Cargo").GetComponent<TMP_Text>().text = $"Cargo: {ship.cargo}";
@@ -94,7 +94,7 @@ namespace STCommander
                 }
                 UpdateContractInfo(ID);
                 await Task.Yield();
-                if(AsyncCancelToken.IsCancellationRequested) { return; }
+                if(AsyncCancel.IsCancellationRequested) { return; }
             }
         }
         private GameObject SpawnContract( string ID ) {
@@ -106,7 +106,7 @@ namespace STCommander
         private async void UpdateContractInfo(string ID ) {
             Transform trans = ContractGOs[ID].transform;
             Contract contract = await ContractManager.GetContract(ID);
-            if(AsyncCancelToken.IsCancellationRequested) { return; }
+            if(AsyncCancel.IsCancellationRequested) { return; }
             trans.Find("Content").GetComponent<TMP_Text>().text = contract.ToString();
         }
     }

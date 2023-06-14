@@ -16,7 +16,7 @@ namespace STCommander
 
         private bool IsSelected;
 
-        private readonly CancellationTokenSource AsyncCancelToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource AsyncCancel = new CancellationTokenSource();
 
         // Start is called before the first frame update
         private async void Start() {
@@ -41,7 +41,7 @@ namespace STCommander
         }
 
         void OnDestroy() {
-            AsyncCancelToken.Cancel();
+            AsyncCancel?.Cancel();
         }
 
         void OnApplicationQuit() {
@@ -137,8 +137,8 @@ namespace STCommander
             List<string> owners = new List<string>();
             ServerResult res;
             if(system.factions == null) {
-                (res, system) = await ServerManager.RequestSingle<SolarSystem>($"systems/{system.symbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                if(AsyncCancelToken.IsCancellationRequested) { return default; }
+                (res, system) = await ServerManager.RequestSingle<SolarSystem>($"systems/{system.symbol}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+                if(AsyncCancel.IsCancellationRequested) { return default; }
                 if(res.result != ServerResult.ResultType.SUCCESS) {
                     // Who... owns... this?
                     Debug.LogError($"SolarSystemVisual:GetSystemOwners() - Didn't get a success for systems info refresh.");
@@ -151,8 +151,8 @@ namespace STCommander
                 if(Faction.Instances.ContainsKey(fsym)) {
                     owners.Add(Faction.Instances[fsym].name);
                 } else {
-                    (res, f) = await ServerManager.RequestSingle<Faction>($"factions/{fsym}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancelToken);
-                    if(AsyncCancelToken.IsCancellationRequested) { return default; }
+                    (res, f) = await ServerManager.RequestSingle<Faction>($"factions/{fsym}", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+                    if(AsyncCancel.IsCancellationRequested) { return default; }
                     if(res.result != ServerResult.ResultType.SUCCESS) {
                         // Fall back to the symbol we know.
                         Debug.LogError($"SolarSystemVisual:GetSystemOwners() - Didn't get a success for faction {fsym}");
