@@ -27,7 +27,7 @@ namespace STCommander
                 factionSymbol = $" AND Faction.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
             }
 
-            List<List<object>> factions = await DatabaseManager.instance.SelectQuery($"SELECT symbol, name, description, headquarters, isRecruiting FROM Faction WHERE lastEdited<{highestUnixTimestamp}" + factionSymbol, cancel);
+            List <List<object>> factions = await DatabaseManager.instance.SelectQuery($"SELECT symbol, name, description, headquarters, isRecruiting FROM Faction WHERE lastEdited<{highestUnixTimestamp}" + factionSymbol, cancel);
             if(cancel.IsCancellationRequested) { return default; }
             if(factions.Count == 0) {
                 Debug.Log($"Faction::LoadFromCache() -- No results.");
@@ -44,11 +44,11 @@ namespace STCommander
             return ret;
         }
 
-        public async Task<bool> SaveToCache(CancellationToken cancel) {
+        public async Task<bool> SaveToCache( CancellationToken cancel ) {
             // Traits
             string query = $"INSERT OR IGNORE INTO FactionTrait (symbol, name, description) VALUES";
             foreach(Trait t in traits) {
-                    query += $"('{t.symbol}', '{t.name}', '{t.description}'),";
+                query += $"('{t.symbol}', '{t.name}', '{t.description}'),";
             }
             query = query[0..^1] + ";\n"; // Replace last comma with a semicolon.
 
@@ -72,5 +72,11 @@ namespace STCommander
             }
             Instances.Add(symbol, this);
         }
+
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public Faction() { }
     }
 }

@@ -83,5 +83,10 @@ namespace STCommander
         public override string ToString() {
             return $"System[{symbol}] @ {x}, {y}. Type: {type}. {waypoints.Count} waypoints.";
         }
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public SolarSystem() { }
     }
 }

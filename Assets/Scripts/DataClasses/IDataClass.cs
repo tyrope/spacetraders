@@ -8,6 +8,6 @@ namespace STCommander
     public interface IDataClass
     {
         public Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge, CancellationToken cancel );
-        public Task<bool> SaveToCache( CancellationToken cancel);
+        public Task<bool> SaveToCache( CancellationToken cancel );
     }
 }

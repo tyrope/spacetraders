@@ -21,5 +21,10 @@ namespace STCommander
             }
             return instances[smbl];
         }
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public Trait() { }
     }
 }

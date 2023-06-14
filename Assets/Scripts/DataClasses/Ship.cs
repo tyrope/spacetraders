@@ -205,5 +205,10 @@ namespace STCommander
         public ShipMount[] Mounts;
         public Cargo cargo;
         public Fuel fuel;
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public Ship() { }
     }
 }

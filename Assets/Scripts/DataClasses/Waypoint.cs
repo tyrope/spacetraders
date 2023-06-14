@@ -138,5 +138,10 @@ namespace STCommander
 
             return retString;
         }
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public Waypoint() { }
     }
 }

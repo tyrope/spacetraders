@@ -43,5 +43,10 @@ namespace STCommander
         public override string ToString() {
             return $"[{accountId}]{symbol} @ {headquarters} {credits}Cr";
         }
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public Agent() { }
     }
 }
