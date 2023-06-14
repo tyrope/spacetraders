@@ -88,7 +88,7 @@ namespace STCommander
         }
 
         public async void FillFactionDropdown() {
-            (ServerResult res, List<Faction> factions) = await ServerManager.RequestList<Faction>("factions?limit=20", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            (ServerResult res, List<Faction> factions) = await ServerManager.RequestList<Faction>("factions", new System.TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested) { return; }
             List<string> recruiting = new List<string>();
             foreach(Faction f in factions) {
