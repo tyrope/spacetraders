@@ -14,7 +14,8 @@ namespace STCommander
         public class Chart
         {
             public string submittedBy;
-            public DateTime subtmittedOn;
+            public DateTime submittedOn;
+            public double Timestamp => (submittedOn - DateTime.UnixEpoch).TotalSeconds;
         }
 
         public enum WaypointType { PLANET, GAS_GIANT, MOON, ORBITAL_STATION, JUMP_GATE, ASTEROID_FIELD, NEBULA, DEBRIS_FIELD, GRAVITY_WELL }
@@ -46,7 +47,7 @@ namespace STCommander
             List<List<object>> orbitals;
             foreach(List<object> wp in waypoints) {
                 traits = await DatabaseManager.instance.SelectQuery(
-                    $"SELECT symbol, name, description FROM WaypointTrait LEFT JOIN Waypoint_WaypointTrait_relationship Rel ON Rel.trait=WaypointTrait.symbol WHERE Rel.waypoint='{waypointSymbol}';", cancel));
+                    $"SELECT symbol, name, description FROM WaypointTrait LEFT JOIN Waypoint_WaypointTrait_relationship Rel ON Rel.trait=WaypointTrait.symbol WHERE Rel.waypoint='{waypointSymbol}';", cancel);
                 if(cancel.IsCancellationRequested) { return default; }
                 orbitals = await DatabaseManager.instance.SelectQuery($"SELECT symbol FROM Orbital WHERE parent='{waypointSymbol}';", cancel);
                 if(cancel.IsCancellationRequested) { return default; }
@@ -65,7 +66,7 @@ namespace STCommander
             x = (int) prms[2];
             y = (int) prms[3];
             faction = (string) prms[4];
-            chart = new Chart() { submittedBy = (string) prms[5], subtmittedOn = (DateTime) prms[6] };
+            chart = new Chart() { submittedBy = (string) prms[5], submittedOn = (DateTime) prms[6] };
 
             List<string> os = new List<string>();
             foreach(List<object> orbital in orbs) {
@@ -87,12 +88,37 @@ namespace STCommander
         }
 
         public async Task<bool> SaveToCache( CancellationToken cancel ) {
-            // The following tables need saving:
+            string query = "BEGIN TRANSACTION;\n"; // This is going to be a big update. Do not let anybody else interfere.
+
             // Chart: waypointSymbol (TEXT NOT NULL), submittedBy (TEXT), submittedOn (INT), lastEdited (INT NOT NULL)
+            query += "INSERT INTO Chart (waypointSymbol, submittedBy, submittedOn, lastEdited) VALUES (" +
+                $"{symbol}, '{chart.submittedBy}', '{chart.Timestamp}',unixepoch(now)" +
+                ") ON CONFLICT(symbol) DO UPDATE SET submittedBy=excluded.submittedBy,submittedOn=excluded.submittedOn,lastEdited=excluded.lastEdited;\n";
+
+
             // WaypointTrait: 	"symbol"	TEXT NOT NULL,            "name"  TEXT NOT NULL,	"description"  (TEXT NOT NULL)
+            query += "INSERT OR IGNORE INTO WaypointTrait (symbol, name, description) VALUES ";
+            foreach(Trait t in traits) {
+                query += $"('{t.symbol}','{t.name}','{t.description}'),";
+            }
+            query = query[0..^1] + ";\n";
+
+
             // Waypoint_WaypointTrait_relationship: waypoint (TEXT NOT NULL), trait (TEXT NOT NULL)
+            query += "INSERT OR IGNORE INTO Waypoint_WaypointTrait_relationship (waypoint, trait) VALUES ";
+            foreach(Trait t in traits) {
+                query += $"('{symbol}','{t.symbol}'),";
+            }
+            query = query[0..^1] + ";\n";
+
+
             // Waypoint: symbol (TEXT NOT NULL), type (TEXT NOT NULL), systemSymbol (TEXT NOT NULL), x (INT NOT NULL), y (INT NOT NULL), faction (TEXT), lastEdited (INT NOT NULL)
-            throw new NotImplementedException();
+            query += $"INSERT INTO Waypoint (symbol, type, systemSymbol, x, y, faction, lastEdited) VALUES ('{symbol}','{type}','{systemSymbol}',{x},{y},'{faction}',unixepoch(now)) ";
+            query += "ON CONFLICT(symbol) DO UPDATE SET faction=excluded.faction,lastEdited=excluded.lastEdited;\n";
+
+
+            query += "COMMIT;"; // Send it!
+            return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
 
         public override string ToString() {
