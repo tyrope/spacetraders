@@ -53,9 +53,16 @@ namespace STCommander
             query = query[0..^1] + ";\n"; // Replace last comma with a semicolon.
 
             // Root object.
-            query += "INSERT OR IGNORE INTO Faction (symbol, name, description, headquarters, isRecruiting, lastEdited) VALUES ('"
+            query += "INSERT INTO Faction (symbol, name, description, headquarters, isRecruiting, lastEdited) VALUES ('"
                 + $"{symbol}','{name}','{description}','{headquarters}',{(isRecruiting ? 1 : 0)}"
-                + ",STRFTIME('%s'));";
+                + ",STRFTIME('%s')) ON CONFLICT(symbol) DO UPDATE SET lastEdited=excluded.lastEdited;";
+
+            // FactionTrait_Faction_relationship: faction (TEXT NOT NULL), trait (TEXT NOT NULL)
+            query += "INSERT OR IGNORE INTO FactionTrait_Faction_relationship (faction, trait) VALUES ";
+            foreach(Trait t in traits) {
+                query += $"('{symbol}','{t.symbol}'),";
+            }
+            query = query[0..^1] + ";\n";
 
             // Send it!
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
