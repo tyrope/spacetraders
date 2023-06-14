@@ -132,7 +132,7 @@ namespace STCommander
             // Root object
             query += "INSERT INTO Ship (symbol,registration,nav,crew,frame,reactor,engine,cargoCapacity,cargoUnits,fuelCurrent,fuelAmount,fuelTimestamp," +
                 $"frameCondition,reactorCondition,engineCondition,lastEdited) VALUES ('{symbol}',{rowids[0]},{rowids[1]},{rowids[2]},'{frame.symbol}','{reactor.symbol}" +
-                $"','{engine.symbol}',{cargo.capacity},{cargo.units},{fuel.current},{fuel.consumed.amount},{fuel.consumed.timestamp},unixepoch(now)) ON CONFLICT(symbol) DO UPDATE SET " +
+                $"','{engine.symbol}',{cargo.capacity},{cargo.units},{fuel.current},{fuel.consumed.amount},{fuel.consumed.timestamp},STRFTIME('%s')) ON CONFLICT(symbol) DO UPDATE SET " +
                 "cargoUnits=excluded.cargoUnits,fuelCurrent=excluded.fuelCurrent,fuelAmount=excluded.fuelAmount,fuelTimestamp=excluded.fuelTimestamp,shipFrame_condition=excluded.shipFrame_condition," +
                 "shipReactor_condition=excluded.shipReactor_condition,shipEngine_condition=excluded.shipEngine_condition,lastEdited=excluded.lastEdited;";
             if(cancel.IsCancellationRequested) { return false; }

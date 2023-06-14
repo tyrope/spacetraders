@@ -55,7 +55,7 @@ namespace STCommander
             // Root object.
             query += "INSERT OR IGNORE INTO Faction (symbol, name, description, headquarters, isRecruiting, lastEdited) VALUES ('"
                 + $"{symbol}','{name}','{description}','{headquarters}',{(isRecruiting ? 1 : 0)}"
-                + ",unixepoch(now));";
+                + ",STRFTIME('%s'));";
 
             // Send it!
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;

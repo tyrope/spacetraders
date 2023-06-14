@@ -28,7 +28,7 @@ namespace STCommander
         public async Task<bool> SaveToCache( CancellationToken cancel ) {
             return await DatabaseManager.instance.WriteQuery(
                 $"INSERT INTO Agent (accountId, symbol, headquarters, credits, startingFaction, lastEdited) VALUES ('"
-                + $"{accountId}', '{symbol}', '{headquarters}', {credits}, '{StartingFaction}', unixepoch(now))"
+                + $"{accountId}', '{symbol}', '{headquarters}', {credits}, '{StartingFaction}', STRFTIME('%s'))"
                 + "ON CONFLICT(symbol) DO UPDATE SET credits=excluded.credits, lastEdited=excluded.lastEdited;", cancel) > 0;
         }
 

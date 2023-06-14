@@ -92,7 +92,7 @@ namespace STCommander
 
             // Chart: waypointSymbol (TEXT NOT NULL), submittedBy (TEXT), submittedOn (INT), lastEdited (INT NOT NULL)
             query += "INSERT INTO Chart (waypointSymbol, submittedBy, submittedOn, lastEdited) VALUES (" +
-                $"{symbol}, '{chart.submittedBy}', '{chart.Timestamp}',unixepoch(now)" +
+                $"{symbol}, '{chart.submittedBy}', '{chart.Timestamp}',STRFTIME('%s')" +
                 ") ON CONFLICT(symbol) DO UPDATE SET submittedBy=excluded.submittedBy,submittedOn=excluded.submittedOn,lastEdited=excluded.lastEdited;\n";
 
 
@@ -113,7 +113,7 @@ namespace STCommander
 
 
             // Waypoint: symbol (TEXT NOT NULL), type (TEXT NOT NULL), systemSymbol (TEXT NOT NULL), x (INT NOT NULL), y (INT NOT NULL), faction (TEXT), lastEdited (INT NOT NULL)
-            query += $"INSERT INTO Waypoint (symbol, type, systemSymbol, x, y, faction, lastEdited) VALUES ('{symbol}','{type}','{systemSymbol}',{x},{y},'{faction}',unixepoch(now)) ";
+            query += $"INSERT INTO Waypoint (symbol, type, systemSymbol, x, y, faction, lastEdited) VALUES ('{symbol}','{type}','{systemSymbol}',{x},{y},'{faction}',STRFTIME('%s')) ";
             query += "ON CONFLICT(symbol) DO UPDATE SET faction=excluded.faction,lastEdited=excluded.lastEdited;\n";
 
 

@@ -62,7 +62,7 @@ namespace STCommander
 
             // Contract root.
             query += $"INSERT INTO Contract (id, factionSymbol, type, accepted, fulfilled, deadlineToAccept, lastEdited) VALUES ('{id}','{factionSymbol}','{type}',"
-                + $"{(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{(deadlineToAccept - DateTime.UnixEpoch).TotalSeconds},unixepoch(now));\n";
+                + $"{(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{(deadlineToAccept - DateTime.UnixEpoch).TotalSeconds},STRFTIME('%s'));\n";
             query += "COMMIT;\n"; // Send it!
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
