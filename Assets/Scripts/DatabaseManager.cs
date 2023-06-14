@@ -14,7 +14,8 @@ namespace STCommander
 
         private readonly IDbConnection sqlConnection = new SqliteConnection();
 
-        private readonly bool sendSqlToLog = true; //TODO Sql Verbosity lives here.
+        private enum SqlLogVerbosity { NONE, ERROR_ONLY, WRITE_ONLY, EVERYTHING }
+        private readonly SqlLogVerbosity sendSqlToLog = SqlLogVerbosity.ERROR_ONLY; //TODO Sql Verbosity lives here.
 
         /// <summary>
         /// Generates an Connection object to the database, and if the database doesn't exist yet, creates it.
@@ -60,7 +61,14 @@ namespace STCommander
             List<object> row = new List<object>();
             sqlConnection.Open();
             command.Connection = (SqliteConnection) sqlConnection;
-            IDataReader reader = await command.ExecuteReaderAsync(cancel);
+            IDataReader reader;
+            try {
+                reader = await command.ExecuteReaderAsync(cancel);
+            }catch(SqliteException e) {
+                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY)
+                    Debug.LogException(e);
+                return default;
+            }
             while(reader.Read()) {
                 if(cancel.IsCancellationRequested) {
                     // Stop reading if we've cancelled.
@@ -76,7 +84,7 @@ namespace STCommander
             await command.DisposeAsync();
             sqlConnection.Close();
             if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
-            if(sendSqlToLog)
+            if(sendSqlToLog >= SqlLogVerbosity.EVERYTHING)
                 Debug.Log($"DatabaseManager::SelectQuery() -- Query parsed. \nIn: {query}\nOut:{returnValues}");
             return returnValues;
         }
@@ -85,11 +93,18 @@ namespace STCommander
             SqliteCommand command = new SqliteCommand(query);
             sqlConnection.Open();
             command.Connection = (SqliteConnection) sqlConnection;
-            int result = await command.ExecuteNonQueryAsync(cancel);
+            int result;
+            try {
+                result = await command.ExecuteNonQueryAsync(cancel);
+            } catch(SqliteException e) {
+                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY)
+                    Debug.LogException(e);
+                return 0;
+            }
             await command.DisposeAsync();
             sqlConnection.Close();
             if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
-            if(sendSqlToLog)
+            if(sendSqlToLog >= SqlLogVerbosity.WRITE_ONLY)
                 Debug.Log($"DatabaseManager::WriteQuery() -- Query parsed. \nIn: {query}\nOut:{result}");
             return result;
         }
@@ -98,11 +113,18 @@ namespace STCommander
             SqliteCommand command = new SqliteCommand("select last_insert_rowid()");
             sqlConnection.Open();
             command.Connection = (SqliteConnection) sqlConnection;
-            int result = (int) await command.ExecuteScalarAsync();
+            int result;
+            try {
+                result = (int) await command.ExecuteScalarAsync();
+            } catch(SqliteException e) {
+                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY)
+                    Debug.LogException(e);
+                return 0;
+            }
             await command.DisposeAsync();
             sqlConnection.Close();
             if(cancel.IsCancellationRequested) { return default; }
-            if(sendSqlToLog)
+            if(sendSqlToLog >= SqlLogVerbosity.EVERYTHING)
                 Debug.Log($"DatabaseManager::GetLatestRowid() -- Success! {result}");
             return result;
         }
