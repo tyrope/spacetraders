@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
 
 namespace STCommander
 {
@@ -21,7 +20,6 @@ namespace STCommander
 
             List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT id, factionSymbol, type, deadline, onAccepted, onFulfilled, accepted, fulfilled, deadlineToAccept FROM Contract WHERE lastEdited<" + highestUnixTimestamp + contractID, cancel);
             if(contracts.Count == 0) {
-                Debug.Log($"Contract::LoadFromCache() -- No results.");
                 return null;
             }
             List<IDataClass> ret = new List<IDataClass>();
