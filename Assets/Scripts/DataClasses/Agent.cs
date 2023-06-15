@@ -34,7 +34,6 @@ namespace STCommander
             accountId = (string) fields[0];
             symbol = (string) fields[1];
             headquarters = (string) fields[2];
-            UnityEngine.Debug.LogWarning(fields[3]);
             credits = Convert.ToInt32(fields[3]);
             StartingFaction = (string) fields[4];
         }
