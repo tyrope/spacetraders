@@ -36,7 +36,11 @@ namespace STCommander
             accountId = (string) fields[0];
             symbol = (string) fields[1];
             headquarters = (string) fields[2];
-            credits = (int) fields[3];
+            try {
+                credits = (int) fields[3];
+            } catch(InvalidCastException) {
+                // Yes it is, suck it.
+            }
             StartingFaction = (string) fields[4];
         }
 
