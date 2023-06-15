@@ -92,7 +92,7 @@ namespace STCommander
         private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO API Verbosity switch lives here.
         private static readonly LogVerbosity sendResultsToLog = LogVerbosity.EVERYTHING;
 
-        public async static Task<(ServerResult, List<T>)> RequestList<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
+        public static async Task<(ServerResult, List<T>)> RequestList<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
 
@@ -114,14 +114,17 @@ namespace STCommander
             if(res.result == ServerResult.ResultType.SUCCESS) {
                 foreach(T r in result) {
                     if(await r.SaveToCache(cancel) == false) {
+                        if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
                         Debug.LogError("Failed to save to cache: " + r);
+                    }else if(sendResultsToLog >= LogVerbosity.EVERYTHING) {
+                        Debug.Log("Saved to cache: " + r);
                     }
                 if(cancel.IsCancellationRequested) { return default; }
             }
             }
             return (res, result); // Done!
         }
-        public async static Task<(ServerResult, T)> RequestSingle<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
+        public static async Task<(ServerResult, T)> RequestSingle<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
 
@@ -145,7 +148,12 @@ namespace STCommander
 
             // Save it to the Cache if successful.
             if(res.result == ServerResult.ResultType.SUCCESS) {
-                await result.SaveToCache(cancel);
+                if(await result.SaveToCache(cancel) == false) {
+                    if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
+                        Debug.LogError("Failed to save to cache: " + result);
+                } else if(sendResultsToLog >= LogVerbosity.EVERYTHING) {
+                    Debug.Log("Saved to cache: " + result);
+                }
                 if(cancel.IsCancellationRequested) { return default; }
             }
             return (res, result); // Done!
@@ -208,6 +216,10 @@ namespace STCommander
                         if(sendResultsToLog >= LogVerbosity.API_ONLY)
                             Log(method, endpoint, retstring, payload: payload);
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
+                    } catch(JsonReaderException e) {
+                        Debug.LogException(e);
+                        Log(method, endpoint, retstring, payload: payload);
+                        return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, "Unparsable JSON"), default);
                     }
                 default:
                     Debug.LogError("Theoretically unreachable code found!");
