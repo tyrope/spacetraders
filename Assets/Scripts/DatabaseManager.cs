@@ -5,6 +5,7 @@ using Mono.Data.Sqlite;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using System;
 
 namespace STCommander
 {
@@ -89,7 +90,7 @@ namespace STCommander
             sqlConnection.Close();
             if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
             if(sendSqlToLog >= SqlLogVerbosity.EVERYTHING)
-                Debug.Log($"DatabaseManager::SelectQuery() -- Query parsed. \nIn: {query}\nOut:{returnValues}");
+                Debug.Log($"DatabaseManager::SelectQuery() -- Query parsed. ({returnValues.Count} rows returned.\n{query}");
             return returnValues;
         }
 
@@ -113,7 +114,7 @@ namespace STCommander
             sqlConnection.Close();
             if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
             if(sendSqlToLog >= SqlLogVerbosity.WRITE_ONLY)
-                Debug.Log($"DatabaseManager::WriteQuery() -- Query parsed. \nIn: {query}\nOut:{result}");
+                Debug.Log($"DatabaseManager::WriteQuery() -- Query parsed. ({result} rows)\n{query}");
             return result;
         }
 
@@ -123,7 +124,8 @@ namespace STCommander
             command.Connection = (SqliteConnection) sqlConnection;
             int result;
             try {
-                result = (int) await command.ExecuteScalarAsync();
+                long result64 = (long) await command.ExecuteScalarAsync();
+                result = (int) result64;
             } catch(SqliteException e) {
                 await command.DisposeAsync();
                 sqlConnection.Close();
