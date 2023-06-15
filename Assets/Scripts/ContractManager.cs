@@ -24,7 +24,7 @@ namespace STCommander
         }
 
         private async void LoadContracts() {
-            (ServerResult result, List<Contract> contractList) = await ServerManager.RequestList<Contract>("my/contracts?limit=20", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
+            (ServerResult result, List<Contract> contractList) = await ServerManager.RequestList<Contract>("my/contracts", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested || result.result != ServerResult.ResultType.SUCCESS) { return; }
             foreach(Contract contract in contractList) {
                 Contracts.Add(contract.id);

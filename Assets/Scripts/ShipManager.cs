@@ -27,7 +27,7 @@ namespace STCommander
         }
 
         public static async void LoadShips() {
-            (ServerResult result, List<Ship> shipList) = await ServerManager.RequestList<Ship>("my/ships/?limit=20", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
+            (ServerResult result, List<Ship> shipList) = await ServerManager.RequestList<Ship>("my/ships", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested) { return; }
             if(result.result != ServerResult.ResultType.SUCCESS) { return; }
             foreach(Ship ship in shipList) { Ships.Add(ship.symbol); }
