@@ -123,7 +123,7 @@ namespace STCommander
         private async void CreateMap( int retries = 0 ) {
             // Load the galaxy
             ServerResult result;
-            (result, solarSystems) = await ServerManager.RequestList<SolarSystem>("systems.json", new System.TimeSpan(7, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            (result, solarSystems) = await ServerManager.RequestList<SolarSystem>("systems.json", TimeSpan.MaxValue, RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested) { return; }
             if(result.result != ServerResult.ResultType.SUCCESS) {
                 Debug.LogError($"Failed to load systems.json\n{result}");

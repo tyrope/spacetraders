@@ -41,7 +41,7 @@ namespace STCommander
                 Debug.LogWarning("Requesting Solar Systems from the cache with an age, but their data doesn't expire.\nCall this function with TimeSpan.MaxValue as the second parameter to supress this message.");
             }
             string systemSymbol = "";
-            if(endpoint.Trim('/') != "systems") {
+            if(endpoint.Trim('/') != "systems" && endpoint.Trim('/') != "systems.json") {
                 // We're asking for a specific system.
                 systemSymbol = $" WHERE System.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
             }
@@ -49,7 +49,6 @@ namespace STCommander
             List<List<object>> systems = await DatabaseManager.instance.SelectQuery("SELECT symbol, sectorSymbol, type, x, y FROM System" + systemSymbol, cancel);
             if(cancel.IsCancellationRequested) { return default; }
             if(systems.Count == 0) {
-                Debug.Log($"SolarSystem::LoadFromCache() -- No results.");
                 return null;
             }
             List<IDataClass> ret = new List<IDataClass>();
