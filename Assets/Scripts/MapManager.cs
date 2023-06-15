@@ -136,6 +136,8 @@ namespace STCommander
                     Debug.LogError("5 failed attempts to load systems.json, something is seriously wrong.");
                     return;
                 }
+            } else {
+                Debug.Log($"Map loaded with {solarSystems.Count} systems.");
             }
 
             // Center on the Player HQ.
