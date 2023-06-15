@@ -23,5 +23,10 @@ namespace STCommander
             requirements = new ShipRequirements((int) fields[3], (int) fields[4], (int) fields[5]);
             condition = cond;
         }
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public ShipReactor() { }
     }
 }

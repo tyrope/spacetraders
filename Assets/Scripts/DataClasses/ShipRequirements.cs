@@ -11,5 +11,10 @@
             Crew = crw;
             Slots = slts;
         }
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public ShipRequirements() { }
     }
 }

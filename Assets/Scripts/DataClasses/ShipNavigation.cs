@@ -62,5 +62,10 @@ namespace STCommander
                 _ => "ERR_INVALID_NAV_STATUS",
             };
         }
+
+        /// <summary>
+        /// TO BE USED FOR REFLECTION PURPOSES ONLY!
+        /// </summary>
+        public ShipNavigation() { }
     }
 }
