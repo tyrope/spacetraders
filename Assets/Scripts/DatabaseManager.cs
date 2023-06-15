@@ -65,6 +65,8 @@ namespace STCommander
             try {
                 reader = await command.ExecuteReaderAsync(cancel);
             } catch(SqliteException e) {
+                await command.DisposeAsync();
+                sqlConnection.Close();
                 if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
                     Debug.LogError($"SQL Exception from query:\n{query}");
                     Debug.LogException(e);
@@ -99,11 +101,13 @@ namespace STCommander
             try {
                 result = await command.ExecuteNonQueryAsync(cancel);
             } catch(SqliteException e) {
+                await command.DisposeAsync();
+                sqlConnection.Close();
                 if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
                     Debug.LogError($"SQL Exception from query:\n{query}");
                     Debug.LogException(e);
                 }
-                return 0;
+                return default;
             }
             await command.DisposeAsync();
             sqlConnection.Close();
@@ -121,6 +125,8 @@ namespace STCommander
             try {
                 result = (int) await command.ExecuteScalarAsync();
             } catch(SqliteException e) {
+                await command.DisposeAsync();
+                sqlConnection.Close();
                 if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
                     Debug.LogError("SQL Exception from grabbing last_insert_rowid()");
                     Debug.LogException(e);
