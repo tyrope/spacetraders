@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
 
 namespace STCommander
 {
@@ -18,11 +17,10 @@ namespace STCommander
             }
             double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
             List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT symbol,nav,frame,frameCondition,reactor,reactorCondition,engine,engineCondition," +
-                "name,factionSymbol,role,\"current\",required,capacity,rotation,morale,wages,cargoCapacity,cargoUnits,fuelCurrent,fuelCapacity,fuelAmount,fuelTimestamp," +
+                "name,factionSymbol,role,\"current\",required,capacity,rotation,morale,wages,cargoCapacity,cargoUnits,fuelCurrent,fuelCapacity,fuelAmount,fuelTimestamp " +
                 "FROM Ship LEFT JOIN ShipRegistration Reg ON Ship.registration=Reg.rowid LEFT JOIN ShipCrew Crew ON crew=Crew.rowid WHERE Ship.lastEdited<" + highestUnixTimestamp + shipSymbol, cancel);
             if(cancel.IsCancellationRequested) { return default; }
             if(ships.Count == 0) {
-                Debug.Log($"Ship::LoadFromCache() -- No results.");
                 return null;
             }
 
@@ -112,7 +110,7 @@ namespace STCommander
 
                 // Nav
                 query = "INSERT INTO ShipNav (systemSymbol,waypointSymbol,status,flightMode,destination,departure,departureTime,arrival) VALUES" +
-                    $"('{nav.systemSymbol}','{nav.waypointSymbol}','{nav.status}','{nav.flightMode}','{nav.route.destination}','{nav.route.departure}',{nav.route.departureTime},{nav.route.arrival});";
+                    $"('{nav.systemSymbol}','{nav.waypointSymbol}','{nav.status}','{nav.flightMode}','{nav.route.DestSymbol}','{nav.route.DeptSymbol}',{nav.route.departureTime},{nav.route.arrival});";
                 await DatabaseManager.instance.WriteQuery(query, cancel);
                 rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
 
@@ -123,8 +121,8 @@ namespace STCommander
             } else {
                 // Update using the existing rowids.
                 query = $"UPDATE ShipRegistration SET name='{registration.name}', factionSymbol='{registration.factionSymbol}', role='{registration.role}' WHERE rowid={rowids[0]};";
-                query += $"UPDATE ShipNav SET systemSymbol='{nav.systemSymbol}',waypointSymbol='{nav.waypointSymbol}',status='{nav.status}',flightMode='{nav.flightMode}',destination='{nav.route.destination}'," +
-                    $"departure='{nav.route.departure}',departureTime={nav.route.departureTime},arrival={nav.route.arrival} WHERE rowid={rowids[1]};";
+                query += $"UPDATE ShipNav SET systemSymbol='{nav.systemSymbol}',waypointSymbol='{nav.waypointSymbol}',status='{nav.status}',flightMode='{nav.flightMode}',destination='{nav.route.DestSymbol}'," +
+                    $"departure='{nav.route.DeptSymbol}',departureTime={nav.route.departureTime},arrival={nav.route.arrival} WHERE rowid={rowids[1]};";
                 query += $"UPDATE ShipCrew SET \"current\"={crew.current},required={crew.required},capacity={crew.capacity},rotation='{crew.rotation}',morale={crew.morale},wages={crew.wages} WHERE rowid={rowids[2]};";
                 await DatabaseManager.instance.WriteQuery(query, cancel);
             }

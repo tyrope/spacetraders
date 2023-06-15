@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -64,7 +63,7 @@ namespace STCommander
                     }
                 } else {
                     // We're in transit, is it an intra-system transit within the selected system?
-                    if(mapManager.SelectedSystem.symbol == ship.nav.route.departure && mapManager.SelectedSystem.symbol == ship.nav.route.destination) {
+                    if(mapManager.SelectedSystem.symbol == ship.nav.route.DeptSymbol && mapManager.SelectedSystem.symbol == ship.nav.route.DestSymbol) {
                         await SetSolarPosition();
                         return;
                     }
@@ -80,8 +79,8 @@ namespace STCommander
                 return;
             }
 
-            bool deptWithinOrbitals = ship.nav.route.departure == mapManager.SelectedWaypoint.symbol;
-            bool destWithinOrbitals = ship.nav.route.destination == mapManager.SelectedWaypoint.symbol;
+            bool deptWithinOrbitals = ship.nav.route.DeptSymbol == mapManager.SelectedWaypoint.symbol;
+            bool destWithinOrbitals = ship.nav.route.DestSymbol == mapManager.SelectedWaypoint.symbol;
             //Not parked at the selection... Grab it's orbitals.
             foreach(string o in mapManager.SelectedWaypoint.orbitals) {
                 // Are we parked?
@@ -97,8 +96,8 @@ namespace STCommander
                 }
 
                 // We're in transit.
-                deptWithinOrbitals = deptWithinOrbitals || o == ship.nav.route.departure;
-                destWithinOrbitals = destWithinOrbitals || o == ship.nav.route.destination;
+                deptWithinOrbitals = deptWithinOrbitals || o == ship.nav.route.DeptSymbol;
+                destWithinOrbitals = destWithinOrbitals || o == ship.nav.route.DestSymbol;
                 if(deptWithinOrbitals && destWithinOrbitals) {
                     // And both departure and destination is within view.
                     await SetSolarPosition();
@@ -115,11 +114,11 @@ namespace STCommander
             ServerResult res;
 
             SolarSystem departureSystem;
-            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.departure}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DeptSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             SolarSystem destinationSystem;
-            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.destination}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DestSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             Vector2 currPos;
@@ -170,8 +169,8 @@ namespace STCommander
                 string wpSymbol;
                 foreach(Transform wpTrans in parentContainer) {
                     wpSymbol = wpTrans.gameObject.GetComponent<WaypointVisual>().waypoint.symbol;
-                    if(wpSymbol == ship.nav.route.departure) { departure = wpTrans; } // Is this the departure waypoint?
-                    if(wpSymbol == ship.nav.route.destination) { destination = wpTrans; } // Is this the destination waypoint?
+                    if(wpSymbol == ship.nav.route.DeptSymbol) { departure = wpTrans; } // Is this the departure waypoint?
+                    if(wpSymbol == ship.nav.route.DestSymbol) { destination = wpTrans; } // Is this the destination waypoint?
                     if(departure != null && destination != null) { break; } // We've got both ends! Stop looping.
                 }
 

@@ -9,10 +9,12 @@ namespace STCommander
         public enum FlightMode { DRIFT, STEALTH, CRUISE, BURN };
         public class Route
         {
-            public string destination;
-            public string departure;
+            public Waypoint destination;
+            public Waypoint departure;
             public string departureTime;
             public string arrival;
+            public string DestSymbol => destination.symbol;
+            public string DeptSymbol => departure.symbol;
             internal DateTime ETA => DateTime.Parse(arrival);
             internal TimeSpan TotalFlightTime => ETA - DateTime.Parse(departureTime);
         }
@@ -45,8 +47,8 @@ namespace STCommander
                     + $"FROM ShipNav WHERE ShipNav.rowid={rowid} LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
             systemSymbol = (string) fields[0];
             waypointSymbol = (string) fields[1];
-            route.destination = (string) fields[2];
-            route.departure = (string) fields[3];
+            route.destination = (Waypoint) fields[2];
+            route.departure = (Waypoint) fields[3];
             route.departureTime = (string) fields[4];
             route.arrival = (string) fields[5];
             status = Enum.Parse<Status>((string) fields[6]);
@@ -58,7 +60,7 @@ namespace STCommander
             {
                 Status.DOCKED => $"DOCKED @ {waypointSymbol}",
                 Status.IN_ORBIT => $"ORBITING {waypointSymbol}",
-                Status.IN_TRANSIT => $"{route.departure}→{route.destination} ({route.ETA:HH:mm:ss})",
+                Status.IN_TRANSIT => $"{route.DeptSymbol}→{route.DestSymbol} ({route.ETA:HH:mm:ss})",
                 _ => "ERR_INVALID_NAV_STATUS",
             };
         }
