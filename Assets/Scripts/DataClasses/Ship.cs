@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -120,6 +121,7 @@ namespace STCommander
                 rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
             } else {
                 // Update using the existing rowids.
+                rowids = (List<int>) ret[0].Cast<int>();
                 query = $"UPDATE ShipRegistration SET name='{registration.name}', factionSymbol='{registration.factionSymbol}', role='{registration.role}' WHERE rowid={rowids[0]};";
                 query += $"UPDATE ShipNav SET systemSymbol='{nav.systemSymbol}',waypointSymbol='{nav.waypointSymbol}',status='{nav.status}',flightMode='{nav.flightMode}',destination='{nav.route.DestSymbol}'," +
                     $"departure='{nav.route.DeptSymbol}',departureTime={nav.route.departureTime},arrival={nav.route.arrival} WHERE rowid={rowids[1]};";
