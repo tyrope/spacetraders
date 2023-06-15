@@ -129,9 +129,6 @@ CREATE TABLE IF NOT EXISTS MarketTransactionType (
 );
 CREATE TABLE IF NOT EXISTS Ship (
     symbol TEXT NOT NULL PRIMARY KEY,
-    registration INTEGER NOT NULL UNIQUE REFERENCES ShipRegistration(rowid),
-    nav INTEGER NOT NULL UNIQUE REFERENCES ShipNav(rowid),
-    crew INTEGER UNIQUE REFERENCES ShipCrew(rowid),
     frame TEXT REFERENCES ShipFrame(symbol),
     reactor TEXT REFERENCES ShipReactor(symbol),
     engine TEXT NOT NULL REFERENCES ShipEngine(symbol),
@@ -167,6 +164,7 @@ CREATE TABLE IF NOT EXISTS Ship_ShipCargoItem_relationship (
     ship TEXT NOT NULL REFERENCES Ship(symbol)
 );
 CREATE TABLE IF NOT EXISTS ShipCrew (
+	shipSymbol TEXT PRIMARY KEY NOT NULL REFERENCES Ship(symbol),
     "current" INTEGER NOT NULL,
     required INTEGER NOT NULL,
     capacity INTEGER NOT NULL,
@@ -214,6 +212,7 @@ CREATE TABLE IF NOT EXISTS ShipMount_Deposits_relationship (
 	UNIQUE(shipMount, deposit)
 );
 CREATE TABLE IF NOT EXISTS ShipNav (
+	shipSymbol TEXT PRIMARY KEY NOT NULL REFERENCES Ship(symbol),
     systemSymbol TEXT NOT NULL REFERENCES System(symbol),
     waypointSymbol TEXT NOT NULL REFERENCES Waypoint(symbol),
     status TEXT NOT NULL REFERENCES ShipNavStatus(value),
@@ -237,6 +236,7 @@ CREATE TABLE IF NOT EXISTS ShipReactor (
     requirements INTEGER NOT NULL UNIQUE REFERENCES ShipRequirements(rowid)
 );
 CREATE TABLE IF NOT EXISTS ShipRegistration(
+	shipSymbol TEXT NOT NULL PRIMARY KEY REFERENCES Ship(symbol),
     name TEXT NOT NULL,
     factionSymbol TEXT NOT NULL REFERENCES Faction(symbol),
     role TEXT NOT NULL REFERENCES ShipRole(value)

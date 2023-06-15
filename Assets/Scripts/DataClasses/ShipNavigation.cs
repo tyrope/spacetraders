@@ -12,7 +12,9 @@ namespace STCommander
             public Waypoint destination;
             public Waypoint departure;
             public string departureTime;
+            public int departureTimestamp => UnityEngine.Mathf.RoundToInt((float) (DateTime.Parse(departureTime) - DateTime.UnixEpoch).TotalSeconds);
             public string arrival;
+            public int arrivalTimestamp => UnityEngine.Mathf.RoundToInt((float) (DateTime.Parse(arrival) - DateTime.UnixEpoch).TotalSeconds);
             public string DestSymbol => destination.symbol;
             public string DeptSymbol => departure.symbol;
             internal DateTime ETA => DateTime.Parse(arrival);
@@ -49,8 +51,8 @@ namespace STCommander
             waypointSymbol = (string) fields[1];
             route.destination = (Waypoint) fields[2];
             route.departure = (Waypoint) fields[3];
-            route.departureTime = (string) fields[4];
-            route.arrival = (string) fields[5];
+            route.departureTime = DateTimeOffset.FromUnixTimeSeconds((int) fields[4]).ToString("yyyy-mm-ddTHH:mm:ss.fffZ");
+            route.arrival = DateTimeOffset.FromUnixTimeSeconds((int) fields[5]).ToString("yyyy-mm-ddTHH:mm:ss.fffZ");
             status = Enum.Parse<Status>((string) fields[6]);
             flightMode = Enum.Parse<FlightMode>((string) fields[7]);
         }

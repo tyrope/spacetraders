@@ -14,12 +14,12 @@ namespace STCommander
             string shipSymbol = "";
             if(endpoint.Trim('/') != "my/ships") {
                 // We're asking for a specific ship.
-                shipSymbol = $" AND Ship.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
+                shipSymbol = $" WHERE Ship.symbol='{endpoint.Split('/')[^1]}' LIMIT 1";
             }
-            double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-            List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT symbol,nav,frame,frameCondition,reactor,reactorCondition,engine,engineCondition," +
-                "name,factionSymbol,role,\"current\",required,capacity,rotation,morale,wages,cargoCapacity,cargoUnits,fuelCurrent,fuelCapacity,fuelAmount,fuelTimestamp " +
-                "FROM Ship LEFT JOIN ShipRegistration Reg ON Ship.registration=Reg.rowid LEFT JOIN ShipCrew Crew ON crew=Crew.rowid WHERE Ship.lastEdited<" + highestUnixTimestamp + shipSymbol, cancel);
+            double highestUnixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - maxAge.TotalSeconds;
+            List<List<object>> ships = await DatabaseManager.instance.SelectQuery("SELECT symbol,frame,frameCondition,reactor,reactorCondition,engine,engineCondition," +
+                "name,factionSymbol,role,\"current\",required,capacity,rotation,morale,wages,cargoCapacity,cargoUnits,fuelCurrent,fuelCapacity,fuelAmount,fuelTimestamp,lastEdited " +
+                "FROM Ship LEFT JOIN ShipRegistration Reg ON Reg.shipSymbol=symbol LEFT JOIN ShipCrew Crew ON Crew.shipSymbol=symbol" + shipSymbol, cancel);
             if(cancel.IsCancellationRequested) { return default; }
             if(ships.Count == 0) {
                 return null;
@@ -97,47 +97,32 @@ namespace STCommander
         }
 
         public async Task<bool> SaveToCache( CancellationToken cancel ) {
-            // Grab the existing rowids.
-            string query = "SELECT registration, nav, crew FROM Ship WHERE Symbol='{symbol}' LIMIT 1";
-            List<List<object>> ret = await DatabaseManager.instance.SelectQuery(query, cancel);
-            List<int> rowids = new List<int>();
-            if(ret.Count < 1) {
-                // We gotta do inserts and grab new rowids.
+            string query = "BEGIN TRANSACTION;\n";
 
-                // Registration
-                query = $"INSERT INTO ShipRegistration (name, factionSymbol, role) VALUES ('{registration.name}', '{registration.factionSymbol}', '{registration.role}');";
-                await DatabaseManager.instance.WriteQuery(query, cancel);
-                rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
+            // ShipRegistration:  shipSymbol (TEXT NOT NULL), name (TEXT NOT NULL), factionSymbol (TEXT NOT NULL), role (TEXT NOT NULL)
+            query += $"INSERT INTO ShipRegistration (shipSymbol, name, factionSymbol, role) VALUES ('{symbol}, '{registration.name}', '{registration.factionSymbol}', '{registration.role}')" +
+                "ON CONFLICT(shipSymbol) DO UPDATE SET name=excluded.name,factionSymbol=excluded.factionSymbol,role=excluded.role;\n";
 
-                // Nav
-                query = "INSERT INTO ShipNav (systemSymbol,waypointSymbol,status,flightMode,destination,departure,departureTime,arrival) VALUES" +
-                    $"('{nav.systemSymbol}','{nav.waypointSymbol}','{nav.status}','{nav.flightMode}','{nav.route.DestSymbol}','{nav.route.DeptSymbol}',{nav.route.departureTime},{nav.route.arrival});";
-                await DatabaseManager.instance.WriteQuery(query, cancel);
-                rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
+            // ShipNav: shipSymbol (TEXT NOT NULL), systemSymbol (TEXT NOT NULL), waypointSymbol (TEXT NOT NULL), status (TEXT NOT NULL), flightMode (TEXT NOT NULL), destination (TEXT NOT NULL),
+            //          departure (TEXT NOT NULL), departureTime (INTEGER NOT NULL), arrival (INTEGER NOT NULL)
+            query += "INSERT INTO ShipNav (shipSymbol,systemSymbol,waypointSymbol,status,flightMode,destination,departure,departureTime,arrival) VALUES ('" +
+                $"{symbol}','{nav.systemSymbol}','{nav.waypointSymbol}','{nav.status}','{nav.flightMode}','{nav.route.DestSymbol}','{nav.route.DeptSymbol}',{nav.route.departureTimestamp},{nav.route.arrivalTimestamp})" +
+                "ON CONFLICT(shipSymbol) DO UPDATE SET systemSymbol=excluded.systemSymbol,waypointSymbol=excluded.waypointSymbol,status=excluded.status,flightMode=excluded.flightMode,destination=excluded.destination," +
+                "departure=excluded.departure,departureTime=excluded.departureTime,arrival=excluded.arrival;\n";
 
-                // Crew
-                query = $"INSERT INTO ShipCrew (\"current\", required, capacity, rotation, morale, wages) VALUES ({crew.current}, {crew.required},{crew.capacity},'{crew.rotation}',{crew.morale},{crew.wages});";
-                await DatabaseManager.instance.WriteQuery(query, cancel);
-                rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
-            } else {
-                // Update using the existing rowids.
-                rowids = (List<int>) ret[0].Cast<int>();
-                query = $"UPDATE ShipRegistration SET name='{registration.name}', factionSymbol='{registration.factionSymbol}', role='{registration.role}' WHERE rowid={rowids[0]};";
-                query += $"UPDATE ShipNav SET systemSymbol='{nav.systemSymbol}',waypointSymbol='{nav.waypointSymbol}',status='{nav.status}',flightMode='{nav.flightMode}',destination='{nav.route.DestSymbol}'," +
-                    $"departure='{nav.route.DeptSymbol}',departureTime={nav.route.departureTime},arrival={nav.route.arrival} WHERE rowid={rowids[1]};";
-                query += $"UPDATE ShipCrew SET \"current\"={crew.current},required={crew.required},capacity={crew.capacity},rotation='{crew.rotation}',morale={crew.morale},wages={crew.wages} WHERE rowid={rowids[2]};";
-                await DatabaseManager.instance.WriteQuery(query, cancel);
-            }
+            // ShipCrew: shipSymbol (TEXT NOT NULL), current (INTEGER NOT NULL), required (INTEGER NOT NULL), capacity (INTEGER NOT NULL), rotation (TEXT NOT NULL), morale (INTEGER NOT NULL), wages (INTEGER NOT NULL)
+            query += $"INSERT INTO ShipCrew (shipSymbol,\"current\",required,capacity,rotation,morale,wages) VALUES ('{symbol}',{crew.current},{crew.required},{crew.capacity},'{crew.rotation}',{crew.morale},{crew.wages})" +
+                "ON CONFLICT(shipSymbol) DO UPDATE SET \"current\"=excluded.current,required=excluded.required,capacity=excluded.capacity,rotation=excluded.rotation,morale=excluded.morale,wages=excluded.wages;\n";
 
-            // Root object
-            query += "INSERT INTO Ship (symbol,registration,nav,crew,frame,reactor,engine,cargoCapacity,cargoUnits,fuelCurrent,fuelAmount,fuelTimestamp," +
-                $"frameCondition,reactorCondition,engineCondition,lastEdited) VALUES ('{symbol}',{rowids[0]},{rowids[1]},{rowids[2]},'{frame.symbol}','{reactor.symbol}" +
-                $"','{engine.symbol}',{cargo.capacity},{cargo.units},{fuel.current},{fuel.consumed.amount},{fuel.consumed.timestamp},STRFTIME('%s')) ON CONFLICT(symbol) DO UPDATE SET " +
-                "cargoUnits=excluded.cargoUnits,fuelCurrent=excluded.fuelCurrent,fuelAmount=excluded.fuelAmount,fuelTimestamp=excluded.fuelTimestamp,shipFrame_condition=excluded.shipFrame_condition," +
-                "shipReactor_condition=excluded.shipReactor_condition,shipEngine_condition=excluded.shipEngine_condition,lastEdited=excluded.lastEdited;";
-            if(cancel.IsCancellationRequested) { return false; }
-
+            // Ship: symbol (TEXT NOT NULL), frame (TEXT), reactor (TEXT), engine (TEXT NOT NULL), cargoCapacity (INTEGER NOT NULL), cargoUnits (INTEGER NOT NULL), fuelCurrent (INTEGER NOT NULL),
+            //       fuelCapacity (INTEGER NOT NULL), fuelAmount (INTEGER), fuelTimestamp (INTEGER), frameCondition (INTEGER), reactorCondition (INTEGER), engineCondition (INTEGER NOT NULL), lastEdited (INTEGER NOT NULL)
+            query += "INSERT INTO Ship (symbol,frame,reactor,engine,cargoCapacity,cargoUnits,fuelCurrent,fuelCapacity,fuelAmount,fuelTimestamp,frameCondition,reactorCondition,engineCondition,lastEdited) VALUES ('" +
+                $"{symbol}','{frame.symbol}','{reactor.symbol}','{engine.symbol}',{cargo.capacity},{cargo.units},{fuel.current},{fuel.capacity},{fuel.consumed.amount},{fuel.consumed.TimestampNumerical},{frame.condition}," +
+                $"{reactor.condition},{engine.condition},STRFTIME('%s')) ON CONFLICT(symbol) DO UPDATE SET frame=excluded.frame,reactor=excluded.reactor,engine=excluded.engine,cargoCapacity=excluded.cargoCapacity," +
+                "cargoUnits=excluded.cargoUnits,fuelCurrent=excluded.fuelCurrent,fuelCapacity=excluded.fuelCapacity,fuelAmount=excluded.fuelAmount,fuelTimestamp=excluded.fuelTimestamp,frameCondition=excluded.frameCondition," +
+                "reactorCondition=excluded.reactorCondition,engineCondition=excluded.engineCondition,lastEdited=excluded.lastEdited;\n";
             // Send it!
+            query += "COMMIT;";
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
         public enum Role { FABRICATOR, HARVESTER, HAULER, INTERCEPTOR, EXCAVATOR, TRANSPORT, REPAIR, SURVEYOR, COMMAND, CARRIER, PATROL, SATELLITE, EXPLORER, REFINERY };
@@ -184,6 +169,7 @@ namespace STCommander
             {
                 public int amount;
                 public string timestamp;
+                public int TimestampNumerical => UnityEngine.Mathf.RoundToInt(DateTimeOffset.Parse(timestamp).ToUnixTimeSeconds());
             }
             public int current;
             public int capacity;
