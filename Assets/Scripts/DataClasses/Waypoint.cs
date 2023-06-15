@@ -34,7 +34,7 @@ namespace STCommander
             string waypointSymbol = endpoint.Trim('/').Split('/')[^1];
 
             List<List<object>> waypoints = await DatabaseManager.instance.SelectQuery(
-                $"SELECT type, systemSymbol, x, y, faction, submittedBy, submittedOn FROM Waypoint LEFT JOIN Chart ON Waypoint.symbol=Chart.waypointSymbol" +
+                $"SELECT type, systemSymbol, x, y, faction, submittedBy, submittedOn FROM Waypoint LEFT JOIN Chart ON Waypoint.symbol=Chart.waypointSymbol " +
                 $"WHERE Waypoint.lastEdited<{highestUnixTimestamp} AND Chart.lastEdited<{highestUnixTimestamp} AND symbol='{waypointSymbol}'",
                 cancel);
             if(cancel.IsCancellationRequested) { return default; }
@@ -137,6 +137,21 @@ namespace STCommander
             }
 
             return retString;
+        }
+
+        public static Waypoint GetWaypointFromSymbol( string symbol ) {
+            // Exists!
+            if(Instances.ContainsKey(symbol)){
+                return Instances[symbol];
+            }
+            /* DEBUG Commented out due to infinite loop(?) bug.
+            // What's that?
+            string system = string.Join('-', symbol.Split('-')[0..^1]);
+            (ServerResult res, Waypoint wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{system}/waypoints/{symbol}", new TimeSpan(5, 0, 0), RequestMethod.GET, cancel);
+            if(cancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return default; }
+            return wp;
+            */
+            return null; // Temporary fix.
         }
 
         /// <summary>

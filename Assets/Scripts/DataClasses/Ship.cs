@@ -32,7 +32,7 @@ namespace STCommander
                 if(cancel.IsCancellationRequested) { return default; }
 
                 List<List<object>> modules = await DatabaseManager.instance.SelectQuery(
-                    "SELECT symbol, capacity, range, name, description, power, crew, slots FROM ShipModule LEFT JOIN ShipRequirements Requirement ON ShipModule.requirements=Requirement.rowid" +
+                    "SELECT symbol, capacity, range, name, description, power, crew, slots FROM ShipModule LEFT JOIN ShipRequirements Requirement ON ShipModule.requirements=Requirement.rowid " +
                     $"LEFT JOIN Ship_ShipModules_relationship Relationship ON Relationship.shipModule=ShipModule.Symbol WHERE Relationship.ship='{ship[0]}'", cancel);
                 if(cancel.IsCancellationRequested) { return default; }
 
@@ -51,28 +51,30 @@ namespace STCommander
             }
             return ret;
         }
+
         public Ship( List<object> fields, List<List<object>> mdls, List<ShipMount> mnts, List<List<object>> manifest ) {
             symbol = (string) fields[0];
-            nav = new ShipNavigation();
-            frame = new ShipFrame((string) fields[2], Convert.ToInt32(fields[3]));
-            reactor = new ShipReactor((string) fields[4], Convert.ToInt32(fields[5]));
-            engine = new ShipEngine((string) fields[6], Convert.ToInt32(fields[7]));
+            nav = new ShipNavigation(symbol);
+            frame = new ShipFrame((string) fields[1], Convert.ToInt32(fields[2]));
+            reactor = new ShipReactor((string) fields[3], Convert.ToInt32(fields[4]));
+            engine = new ShipEngine((string) fields[5], Convert.ToInt32(fields[6]));
 
-            registration.name = (string) fields[8];
-            registration.factionSymbol = (string) fields[9];
-            registration.role = Enum.Parse<Role>((string) fields[10]);
-            crew.current = Convert.ToInt32(fields[11]);
-            crew.required = Convert.ToInt32(fields[12]);
-            crew.capacity = Convert.ToInt32(fields[13]);
-            crew.rotation = Enum.Parse<Crew.Rotation>((string) fields[14]);
-            crew.morale = Convert.ToInt32(fields[15]);
-            crew.wages = Convert.ToInt32(fields[16]);
-            cargo.capacity = Convert.ToInt32(fields[17]);
-            cargo.units = Convert.ToInt32(fields[18]);
-            fuel.current = Convert.ToInt32(fields[19]);
-            fuel.capacity = Convert.ToInt32(fields[20]);
-            fuel.consumed.amount = Convert.ToInt32(fields[21]);
-            fuel.consumed.timestamp = (string) fields[22];
+            registration.name = (string) fields[7];
+            registration.factionSymbol = (string) fields[8];
+            registration.role = Enum.Parse<Role>((string) fields[9]);
+            crew.current = Convert.ToInt32(fields[10]);
+            crew.required = Convert.ToInt32(fields[11]);
+            crew.capacity = Convert.ToInt32(fields[12]);
+            crew.rotation = Enum.Parse<Crew.Rotation>((string) fields[13]);
+            crew.morale = Convert.ToInt32(fields[14]);
+            crew.wages = Convert.ToInt32(fields[15]);
+            cargo.capacity = Convert.ToInt32(fields[16]);
+            cargo.units = Convert.ToInt32(fields[17]);
+            fuel.current = Convert.ToInt32(fields[18]);
+            fuel.capacity = Convert.ToInt32(fields[19]);
+            fuel.consumed.amount = Convert.ToInt32(fields[20]);
+            fuel.consumed.timestamp = (string) fields[21];
+            lastEdited = Convert.ToInt32(fields[22]);
 
             List<ShipModule> mods = new List<ShipModule>();
             foreach(List<object> module in mdls) {
@@ -100,7 +102,7 @@ namespace STCommander
             string query = "BEGIN TRANSACTION;\n";
 
             // ShipRegistration:  shipSymbol (TEXT NOT NULL), name (TEXT NOT NULL), factionSymbol (TEXT NOT NULL), role (TEXT NOT NULL)
-            query += $"INSERT INTO ShipRegistration (shipSymbol, name, factionSymbol, role) VALUES ('{symbol}, '{registration.name}', '{registration.factionSymbol}', '{registration.role}')" +
+            query += $"INSERT INTO ShipRegistration (shipSymbol, name, factionSymbol, role) VALUES ('{symbol}', '{registration.name}', '{registration.factionSymbol}', '{registration.role}') " +
                 "ON CONFLICT(shipSymbol) DO UPDATE SET name=excluded.name,factionSymbol=excluded.factionSymbol,role=excluded.role;\n";
 
             // ShipNav: shipSymbol (TEXT NOT NULL), systemSymbol (TEXT NOT NULL), waypointSymbol (TEXT NOT NULL), status (TEXT NOT NULL), flightMode (TEXT NOT NULL), destination (TEXT NOT NULL),
@@ -191,10 +193,13 @@ namespace STCommander
         public ShipMount[] Mounts;
         public Cargo cargo;
         public Fuel fuel;
+        public int lastEdited;
 
         /// <summary>
         /// TO BE USED FOR REFLECTION PURPOSES ONLY!
         /// </summary>
-        public Ship() { }
+        public Ship() {
+            lastEdited = (int) DateTimeOffset.Now.ToUnixTimeSeconds();
+        }
     }
 }

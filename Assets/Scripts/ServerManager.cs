@@ -215,11 +215,14 @@ namespace STCommander
                         // There was no ServerResponse wrapper.
                         if(sendResultsToLog >= LogVerbosity.API_ONLY)
                             Log(method, endpoint, retstring, payload: payload);
+                        try {
                         return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
-                    } catch(JsonReaderException e) {
-                        Debug.LogException(e);
-                        Log(method, endpoint, retstring, payload: payload);
+                        } catch(JsonReaderException) {
+                            // This breaks and idk why.
+                            if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
+                                Log(method, endpoint, "JsonReaderException trying to parse:\n" + retstring, payload: payload, error: true);
                         return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, "Unparsable JSON"), default);
+                    }
                     }
                 default:
                     Debug.LogError("Theoretically unreachable code found!");

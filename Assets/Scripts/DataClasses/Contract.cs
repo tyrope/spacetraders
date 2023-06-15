@@ -10,15 +10,13 @@ namespace STCommander
         public static readonly Dictionary<string, Contract> Instances = new Dictionary<string, Contract>();
 
         public async Task<List<IDataClass>> LoadFromCache( string endpoint, TimeSpan maxAge, CancellationToken cancel ) {
-            double highestUnixTimestamp = (DateTime.UtcNow - DateTime.UnixEpoch).TotalSeconds - maxAge.TotalSeconds;
-
             string contractID = "";
             if(endpoint.Trim('/') != "my/contracts") {
                 // We're asking for a specific contract.
-                contractID = $" AND id='{endpoint.Split('/')[^0]}' LIMIT 1";
+                contractID = $" WHERE id='{endpoint.Split('/')[^0]}' LIMIT 1";
             }
 
-            List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT id, factionSymbol, type, deadline, onAccepted, onFulfilled, accepted, fulfilled, deadlineToAccept FROM Contract WHERE lastEdited<" + highestUnixTimestamp + contractID, cancel);
+            List<List<object>> contracts = await DatabaseManager.instance.SelectQuery("SELECT id, factionSymbol, type, deadline, onAccepted, onFulfilled, accepted, fulfilled, deadlineToAccept, lastEdited FROM Contract" + contractID, cancel);
             if(contracts.Count == 0) {
                 return null;
             }
@@ -44,7 +42,7 @@ namespace STCommander
             // Contract: id (TEXT NOT NULL), factionSymbol (TEXT NOT NULL), type (TEXT NOT NULL), deadline (INTEGER NOT NULL), onAccepted (INTEGER NOT NULL),
             // onFulfilled (INTEGER NOT NULL), accepted (INTEGER NOT NULL), fulfilled (INTEGER NOT NULL), deadlineToAccept (INTEGER NOT NULL), lastEdited (INTEGER NOT NULL)
             query += "INSERT INTO Contract (id, factionSymbol, type, deadline, onAccepted, onFulfilled, accepted, fulfilled, deadlineToAccept, lastEdited) VALUES ";
-            query += $"('{id}','{factionSymbol}','{type}',{terms.deadline}, {terms.payment.onAccepted}, {terms.payment.onFulfilled}, {(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{(deadlineToAccept - DateTime.UnixEpoch).TotalSeconds},STRFTIME('%s'));\n";
+            query += $"('{id}','{factionSymbol}','{type}',{Math.Round((double) new DateTimeOffset(terms.deadline).ToUnixTimeSeconds())}, {terms.payment.onAccepted}, {terms.payment.onFulfilled}, {(accepted ? 1 : 0)},{(fulfilled ? 1 : 0)},{Math.Round((deadlineToAccept - DateTime.UnixEpoch).TotalSeconds)},STRFTIME('%s'));\n";
 
             query += "COMMIT;\n"; // Send it!
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
@@ -55,14 +53,20 @@ namespace STCommander
             id = (string) p[0];
             factionSymbol = (string) p[1];
             type = Enum.Parse<ContractType>((string) p[2]);
-            terms.deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds(Convert.ToInt32(p[3]));
-            terms.payment.onAccepted = Convert.ToInt32(p[4]);
-            terms.payment.onFulfilled = Convert.ToInt32(p[5]);
+            terms = new Terms() {
+                deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds(Convert.ToInt32(p[3])),
+                payment = new Terms.Payment() {
+                    onAccepted = Convert.ToInt32(p[4]),
+                    onFulfilled = Convert.ToInt32(p[5])
+                }
+            };
             accepted = Convert.ToInt32(p[6]) == 1;
             fulfilled = Convert.ToInt32(p[7]) == 1;
             deadlineToAccept = DateTime.UnixEpoch + TimeSpan.FromSeconds(Convert.ToInt32(p[8]));
+            lastEdited = Convert.ToInt32(p[9]);
             foreach(List<object> good in deliverGoods) {
-                terms.deliver.Add(new Terms.Deliver(good));
+                if(good != null)
+                    terms.deliver.Add(new Terms.Deliver(good));
             }
 
             Instances.Add(id, this);
@@ -87,10 +91,10 @@ namespace STCommander
                 public int unitsFulfilled;
 
                 public Deliver( List<object> good ) {
-                    tradeSymbol = (string) good[1];
-                    destinationSymbol = (string) good[2];
-                    unitsRequired = Convert.ToInt32(good[3]);
-                    unitsFulfilled = Convert.ToInt32(good[4]);
+                    tradeSymbol = (string) good[0];
+                    destinationSymbol = (string) good[1];
+                    unitsRequired = Convert.ToInt32(good[2]);
+                    unitsFulfilled = Convert.ToInt32(good[3]);
                 }
                 public Deliver() {}
 
@@ -102,7 +106,7 @@ namespace STCommander
             public List<Deliver> deliver;
 
             public override string ToString() {
-                string ret = $"Complete before: {deadline.ToString("yy-MM-dd'T'HH:mm:ss")}\n";
+                string ret = $"Complete before: {deadline:yy-MM-dd'T'HH:mm:ss}\n";
                 foreach(Deliver d in deliver) {
                     ret += d + "\n";
                 }
@@ -118,6 +122,7 @@ namespace STCommander
         public bool accepted;
         public bool fulfilled;
         public DateTime deadlineToAccept;
+        public int lastEdited;
 
 
         public ContractStatus GetStatus() {
@@ -140,6 +145,8 @@ namespace STCommander
         /// <summary>
         /// TO BE USED FOR REFLECTION PURPOSES ONLY!
         /// </summary>
-        public Contract() { }
+        public Contract() {
+            lastEdited = (int) DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        }
     }
 }
