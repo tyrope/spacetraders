@@ -53,25 +53,25 @@ namespace STCommander
         }
         public Ship( List<object> fields, List<List<object>> mdls, List<ShipMount> mnts, List<List<object>> manifest ) {
             symbol = (string) fields[0];
-            nav = new ShipNavigation((int) fields[1]);
-            frame = new ShipFrame((string) fields[2], (int) fields[3]);
-            reactor = new ShipReactor((string) fields[4], (int) fields[5]);
-            engine = new ShipEngine((string) fields[6], (int) fields[7]);
+            nav = new ShipNavigation();
+            frame = new ShipFrame((string) fields[2], Convert.ToInt32(fields[3]));
+            reactor = new ShipReactor((string) fields[4], Convert.ToInt32(fields[5]));
+            engine = new ShipEngine((string) fields[6], Convert.ToInt32(fields[7]));
 
             registration.name = (string) fields[8];
             registration.factionSymbol = (string) fields[9];
             registration.role = Enum.Parse<Role>((string) fields[10]);
-            crew.current = (int) fields[11];
-            crew.required = (int) fields[12];
-            crew.capacity = (int) fields[13];
+            crew.current = Convert.ToInt32(fields[11]);
+            crew.required = Convert.ToInt32(fields[12]);
+            crew.capacity = Convert.ToInt32(fields[13]);
             crew.rotation = Enum.Parse<Crew.Rotation>((string) fields[14]);
-            crew.morale = (int) fields[15];
-            crew.wages = (int) fields[16];
-            cargo.capacity = (int) fields[17];
-            cargo.units = (int) fields[18];
-            fuel.current = (int) fields[19];
-            fuel.capacity = (int) fields[20];
-            fuel.consumed.amount = (int) fields[21];
+            crew.morale = Convert.ToInt32(fields[15]);
+            crew.wages = Convert.ToInt32(fields[16]);
+            cargo.capacity = Convert.ToInt32(fields[17]);
+            cargo.units = Convert.ToInt32(fields[18]);
+            fuel.current = Convert.ToInt32(fields[19]);
+            fuel.capacity = Convert.ToInt32(fields[20]);
+            fuel.consumed.amount = Convert.ToInt32(fields[21]);
             fuel.consumed.timestamp = (string) fields[22];
 
             List<ShipModule> mods = new List<ShipModule>();
@@ -88,7 +88,7 @@ namespace STCommander
                     symbol = (string) item[0],
                     name = (string) item[1],
                     description = (string) item[2],
-                    units = (int) item[3]
+                    units = Convert.ToInt32(item[3])
                 });
             }
             cargo.inventory = inv.ToArray();

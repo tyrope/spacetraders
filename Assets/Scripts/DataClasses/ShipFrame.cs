@@ -26,10 +26,10 @@ namespace STCommander
             symbol = Enum.Parse<FrameType>(smbl);
             name = (string) fields[0];
             description = (string) fields[1];
-            moduleSlots = (int) fields[2];
-            mountingPoints = (int) fields[3];
-            fuelCapacity = (int) fields[4];
-            requirements = new ShipRequirements((int) fields[5], (int) fields[6], (int) fields[7]);
+            moduleSlots = Convert.ToInt32(fields[2]);
+            mountingPoints = Convert.ToInt32(fields[3]);
+            fuelCapacity = Convert.ToInt32(fields[4]);
+            requirements = new ShipRequirements(Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]), Convert.ToInt32(fields[7]));
             condition = cond;
         }
 

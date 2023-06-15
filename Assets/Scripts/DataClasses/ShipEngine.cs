@@ -19,8 +19,8 @@ namespace STCommander
             symbol = Enum.Parse<ShipEngine.EngineType>(smbl);
             name = (string) fields[0];
             description = (string) fields[1];
-            speed = (int) fields[2];
-            requirements = new ShipRequirements((int) fields[3], (int) fields[4], (int) fields[5]);
+            speed = Convert.ToInt32(fields[2]);
+            requirements = new ShipRequirements(Convert.ToInt32(fields[3]), Convert.ToInt32(fields[4]), Convert.ToInt32(fields[5]));
             condition = cond;
         }
 

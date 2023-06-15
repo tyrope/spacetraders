@@ -72,7 +72,7 @@ namespace STCommander
             name = (string) p[1];
             description = (string) p[2];
             headquarters = (string) p[3];
-            isRecruiting = (int) p[4] == 1;
+            isRecruiting = Convert.ToInt32(p[4]) == 1;
             traits = new List<Trait>();
             foreach(List<string> trait in traitList.Cast<List<string>>()) {
                 traits.Add(Trait.GetTrait(trait[0], trait[1], trait[2]));

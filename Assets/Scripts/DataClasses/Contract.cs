@@ -55,12 +55,12 @@ namespace STCommander
             id = (string) p[0];
             factionSymbol = (string) p[1];
             type = Enum.Parse<ContractType>((string) p[2]);
-            terms.deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[3]);
-            terms.payment.onAccepted = (int) p[4];
-            terms.payment.onFulfilled = (int) p[5];
-            accepted = (int) p[6] == 1;
-            fulfilled = (int) p[7] == 1;
-            deadlineToAccept = DateTime.UnixEpoch + TimeSpan.FromSeconds((int) p[8]);
+            terms.deadline = DateTime.UnixEpoch + TimeSpan.FromSeconds(Convert.ToInt32(p[3]));
+            terms.payment.onAccepted = Convert.ToInt32(p[4]);
+            terms.payment.onFulfilled = Convert.ToInt32(p[5]);
+            accepted = Convert.ToInt32(p[6]) == 1;
+            fulfilled = Convert.ToInt32(p[7]) == 1;
+            deadlineToAccept = DateTime.UnixEpoch + TimeSpan.FromSeconds(Convert.ToInt32(p[8]));
             foreach(List<object> good in deliverGoods) {
                 terms.deliver.Add(new Terms.Deliver(good));
             }
@@ -89,8 +89,8 @@ namespace STCommander
                 public Deliver( List<object> good ) {
                     tradeSymbol = (string) good[1];
                     destinationSymbol = (string) good[2];
-                    unitsRequired = (int) good[3];
-                    unitsFulfilled = (int) good[4];
+                    unitsRequired = Convert.ToInt32(good[3]);
+                    unitsFulfilled = Convert.ToInt32(good[4]);
                 }
                 public Deliver() {}
 

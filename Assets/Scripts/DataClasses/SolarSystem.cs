@@ -29,8 +29,8 @@ namespace STCommander
             symbol = (string) p[0];
             sectorSymbol = (string) p[1];
             type = Enum.Parse<StarType>((string) p[2]);
-            x = (int) p[3];
-            y = (int) p[4];
+            x = Convert.ToInt32(p[3]);
+            y = Convert.ToInt32(p[4]);
             waypoints = wps;
             factions = fs;
             return this;

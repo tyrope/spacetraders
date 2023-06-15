@@ -51,8 +51,8 @@ namespace STCommander
             waypointSymbol = (string) fields[1];
             route.destination = (Waypoint) fields[2];
             route.departure = (Waypoint) fields[3];
-            route.departureTime = DateTimeOffset.FromUnixTimeSeconds((int) fields[4]).ToString("yyyy-mm-ddTHH:mm:ss.fffZ");
-            route.arrival = DateTimeOffset.FromUnixTimeSeconds((int) fields[5]).ToString("yyyy-mm-ddTHH:mm:ss.fffZ");
+            route.departureTime = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt32(fields[4])).ToString("yyyy-mm-ddTHH:mm:ss.fffZ");
+            route.arrival = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt32(fields[5])).ToString("yyyy-mm-ddTHH:mm:ss.fffZ");
             status = Enum.Parse<Status>((string) fields[6]);
             flightMode = Enum.Parse<FlightMode>((string) fields[7]);
         }

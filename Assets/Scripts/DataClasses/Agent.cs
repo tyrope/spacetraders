@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using UnityEngine;
 
 namespace STCommander
 {
@@ -19,7 +18,6 @@ namespace STCommander
             List<List<object>> result = await DatabaseManager.instance.SelectQuery($"SELECT accountId, symbol, headquarters, credits, startingFaction FROM Agent WHERE lastEdited<{highestUnixTimestamp} LIMIT 1", cancel);
             if(cancel.IsCancellationRequested) { return null; }
             if(result.Count != 1) {
-                Debug.LogError($"Agent::LoadFromCache() -- Wrong amount of results: {result.Count}.");
                 return null;
             }
             return new List<IDataClass>() { new Agent(result[0]) };
@@ -36,11 +34,8 @@ namespace STCommander
             accountId = (string) fields[0];
             symbol = (string) fields[1];
             headquarters = (string) fields[2];
-            try {
-                credits = (int) fields[3];
-            } catch(InvalidCastException) {
-                // Yes it is, suck it.
-            }
+            UnityEngine.Debug.LogWarning(fields[3]);
+            credits = Convert.ToInt32(fields[3]);
             StartingFaction = (string) fields[4];
         }
 

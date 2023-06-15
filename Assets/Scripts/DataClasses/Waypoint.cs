@@ -63,8 +63,8 @@ namespace STCommander
         private Waypoint Update(List<object>prms, List<List<object>> trts, List<List<object>> orbs) {
             type = Enum.Parse<WaypointType>((string) prms[0]);
             systemSymbol = (string) prms[1];
-            x = (int) prms[2];
-            y = (int) prms[3];
+            x = Convert.ToInt32(prms[2]);
+            y = Convert.ToInt32(prms[3]);
             faction = (string) prms[4];
             chart = new Chart() { submittedBy = (string) prms[5], submittedOn = (DateTime) prms[6] };
 

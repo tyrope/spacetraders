@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace STCommander
 {
@@ -13,12 +14,12 @@ namespace STCommander
 
         public ShipModule( List<object> fields) {
             symbol = (string) fields[0];
-            capacity = (int) fields[1];
-            range = (int) fields[2];
+            capacity = Convert.ToInt32(fields[1]);
+            range = Convert.ToInt32(fields[2]);
             name = (string) fields[3];
             description = (string) fields[4];
 
-            requirements = new ShipRequirements((int) fields[5], (int) fields[6], (int) fields[7]);
+            requirements = new ShipRequirements(Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]), Convert.ToInt32(fields[7]));
         }
 
         /// <summary>

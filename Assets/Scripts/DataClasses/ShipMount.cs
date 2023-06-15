@@ -28,7 +28,7 @@ namespace STCommander
             symbol = Enum.Parse<MountType>((string) fields[0]);
             name = (string) fields[1];
             description = (string) fields[2];
-            strength = (int) fields[3];
+            strength = Convert.ToInt32(fields[3]);
 
             List<Deposit> listdeps = new List<Deposit>();
             foreach(string dep in deps) {
@@ -36,7 +36,7 @@ namespace STCommander
             }
             deposits = listdeps.ToArray();
 
-            requirements = new ShipRequirements((int) fields[5], (int) fields[6], (int) fields[7]);
+            requirements = new ShipRequirements(Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]), Convert.ToInt32(fields[7]));
         }
 
         /// <summary>
