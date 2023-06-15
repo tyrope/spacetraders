@@ -104,7 +104,7 @@ namespace STCommander
                 // We gotta do inserts and grab new rowids.
 
                 // Registration
-                query = $"INSERT INTO ShipRegistration (name, factionSymbol, role) VALUES ({registration.name}, {registration.factionSymbol}, {registration.role});";
+                query = $"INSERT INTO ShipRegistration (name, factionSymbol, role) VALUES ('{registration.name}', '{registration.factionSymbol}', '{registration.role}');";
                 await DatabaseManager.instance.WriteQuery(query, cancel);
                 rowids.Add(await DatabaseManager.instance.GetLatestRowid(cancel));
 

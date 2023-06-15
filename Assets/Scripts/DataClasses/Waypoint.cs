@@ -91,12 +91,12 @@ namespace STCommander
             string query = "BEGIN TRANSACTION;\n"; // This is going to be a big update. Do not let anybody else interfere.
 
             // Chart: waypointSymbol (TEXT NOT NULL), submittedBy (TEXT), submittedOn (INT), lastEdited (INT NOT NULL)
-            query += "INSERT INTO Chart (waypointSymbol, submittedBy, submittedOn, lastEdited) VALUES (" +
-                $"{symbol}, '{chart.submittedBy}', '{chart.Timestamp}',STRFTIME('%s')" +
+            query += "INSERT INTO Chart (waypointSymbol, submittedBy, submittedOn, lastEdited) VALUES ('" +
+                $"{symbol}', '{chart.submittedBy}', {chart.Timestamp},STRFTIME('%s')" +
                 ") ON CONFLICT(symbol) DO UPDATE SET submittedBy=excluded.submittedBy,submittedOn=excluded.submittedOn,lastEdited=excluded.lastEdited;\n";
 
 
-            // WaypointTrait: 	"symbol"	TEXT NOT NULL,            "name"  TEXT NOT NULL,	"description"  (TEXT NOT NULL)
+            // WaypointTrait: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL)
             query += "INSERT OR IGNORE INTO WaypointTrait (symbol, name, description) VALUES ";
             foreach(Trait t in traits) {
                 query += $"('{t.symbol}','{t.name}','{t.description}'),";
