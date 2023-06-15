@@ -15,8 +15,8 @@ namespace STCommander
 
         private readonly IDbConnection sqlConnection = new SqliteConnection();
 
-        private enum SqlLogVerbosity { NONE, ERROR_ONLY, WRITE_ONLY, EVERYTHING }
         private readonly SqlLogVerbosity sendSqlToLog = SqlLogVerbosity.EVERYTHING; //TODO Sql Verbosity lives here.
+        private enum SqlLogVerbosity { NONE, ERROR_ONLY, WRITE_ONLY, WRITE_AND_SCALAR, EVERYTHING }
 
         /// <summary>
         /// Generates an Connection object to the database, and if the database doesn't exist yet, creates it.
@@ -90,7 +90,7 @@ namespace STCommander
             sqlConnection.Close();
             if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
             if(sendSqlToLog >= SqlLogVerbosity.EVERYTHING)
-                Debug.Log($"DatabaseManager::SelectQuery() -- Query parsed. ({returnValues.Count} rows returned.\n{query}");
+                Debug.Log($"DatabaseManager::SelectQuery() -- Query parsed. ({returnValues.Count} rows)\n{query}");
             return returnValues;
         }
 
@@ -138,7 +138,7 @@ namespace STCommander
             await command.DisposeAsync();
             sqlConnection.Close();
             if(cancel.IsCancellationRequested) { return default; }
-            if(sendSqlToLog >= SqlLogVerbosity.EVERYTHING)
+            if(sendSqlToLog >= SqlLogVerbosity.WRITE_AND_SCALAR)
                 Debug.Log($"DatabaseManager::GetLatestRowid() -- Success! {result}");
             return result;
         }
