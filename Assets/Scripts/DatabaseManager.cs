@@ -15,7 +15,7 @@ namespace STCommander
         private readonly IDbConnection sqlConnection = new SqliteConnection();
 
         private enum SqlLogVerbosity { NONE, ERROR_ONLY, WRITE_ONLY, EVERYTHING }
-        private readonly SqlLogVerbosity sendSqlToLog = SqlLogVerbosity.ERROR_ONLY; //TODO Sql Verbosity lives here.
+        private readonly SqlLogVerbosity sendSqlToLog = SqlLogVerbosity.EVERYTHING; //TODO Sql Verbosity lives here.
 
         /// <summary>
         /// Generates an Connection object to the database, and if the database doesn't exist yet, creates it.

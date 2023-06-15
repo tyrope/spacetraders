@@ -115,7 +115,7 @@ namespace STCommander
                 foreach(T r in result) {
                     if(await r.SaveToCache(cancel) == false) {
                         if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
-                        Debug.LogError("Failed to save to cache: " + r);
+                            Debug.LogError("Failed to save to cache: " + r);
                     }else if(sendResultsToLog >= LogVerbosity.EVERYTHING) {
                         Debug.Log("Saved to cache: " + r);
                     }
@@ -189,7 +189,7 @@ namespace STCommander
                             return await RequestByPassCache<T>(endpoint, method, cancel, payload, authToken);
                         case 429: // Too Many Requests
                             if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
-                                Log(method, endpoint, $"HTTPError: { request.error}\nTrying again in 1s.", payload: payload);
+                                Log(method, endpoint, $"HTTPError: { request.error }\nTrying again in 1s.", payload: payload);
                             await Task.Delay(1000);
                             return await RequestByPassCache<T>(endpoint, method, cancel, payload, authToken);
                         default:
