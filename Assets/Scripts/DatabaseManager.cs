@@ -64,9 +64,11 @@ namespace STCommander
             IDataReader reader;
             try {
                 reader = await command.ExecuteReaderAsync(cancel);
-            }catch(SqliteException e) {
-                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY)
+            } catch(SqliteException e) {
+                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
+                    Debug.LogError($"SQL Exception from query:\n{query}");
                     Debug.LogException(e);
+                }
                 return default;
             }
             while(reader.Read()) {
@@ -97,8 +99,10 @@ namespace STCommander
             try {
                 result = await command.ExecuteNonQueryAsync(cancel);
             } catch(SqliteException e) {
-                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY)
+                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
+                    Debug.LogError($"SQL Exception from query:\n{query}");
                     Debug.LogException(e);
+                }
                 return 0;
             }
             await command.DisposeAsync();
@@ -117,8 +121,10 @@ namespace STCommander
             try {
                 result = (int) await command.ExecuteScalarAsync();
             } catch(SqliteException e) {
-                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY)
+                if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
+                    Debug.LogError("SQL Exception from grabbing last_insert_rowid()");
                     Debug.LogException(e);
+                }
                 return 0;
             }
             await command.DisposeAsync();
