@@ -65,8 +65,7 @@ namespace STCommander
             deadlineToAccept = DateTime.UnixEpoch + TimeSpan.FromSeconds(Convert.ToInt32(p[8]));
             lastEdited = Convert.ToInt32(p[9]);
             foreach(List<object> good in deliverGoods) {
-                if(good != null)
-                    terms.deliver.Add(new Terms.Deliver(good));
+                terms.deliver.Add(new Terms.Deliver(good));
             }
 
             Instances.Add(id, this);
@@ -103,7 +102,7 @@ namespace STCommander
 
             public DateTime deadline;
             public Payment payment;
-            public List<Deliver> deliver;
+            public List<Deliver> deliver = new List<Deliver>();
 
             public override string ToString() {
                 string ret = $"Complete before: {deadline:yy-MM-dd'T'HH:mm:ss}\n";
