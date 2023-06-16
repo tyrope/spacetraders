@@ -114,11 +114,11 @@ namespace STCommander
             ServerResult res;
 
             SolarSystem departureSystem;
-            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DeptSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DeptSymbol}", TimeSpan.MaxValue, RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             SolarSystem destinationSystem;
-            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DestSymbol}", new TimeSpan(1, 0, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DestSymbol}", TimeSpan.MaxValue, RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
 
             Vector2 currPos;
