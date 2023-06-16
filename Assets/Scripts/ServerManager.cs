@@ -40,7 +40,8 @@ namespace STCommander
             public Meta meta;
         }
 
-        private class ErrorResponse {
+        private class ErrorResponse
+        {
             public class Error
             {
                 public string message;
@@ -107,7 +108,7 @@ namespace STCommander
                 return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), cacheData.Cast<T>().ToList());
             }
             // Or grab it from the API instead.
-            (ServerResult res, List<T> result) = await RequestByPassCache<List<T>>(endpoint, method, cancel, payload);
+            (ServerResult res, T[] result) = await RequestByPassCache<T[]>(endpoint, method, cancel, payload);
             if(cancel.IsCancellationRequested) { return default; }
 
             // Save it to the Cache if successful.
@@ -122,7 +123,7 @@ namespace STCommander
                 if(cancel.IsCancellationRequested) { return default; }
             }
             }
-            return (res, result); // Done!
+            return (res, result?.ToList()); // Done!
         }
         public static async Task<(ServerResult, T)> RequestSingle<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
@@ -135,7 +136,7 @@ namespace STCommander
                 // Success!
                 if(cacheData.Count > 1) {
                     // Sort of.
-                    Debug.LogWarning("ServerManager::RequestSingle() -- More than 1 result received, ignoring all but the first.");
+                    Debug.LogWarning($"ServerManager::RequestSingle() -- Received {cacheData.Count} results, only returning the first.\n{endpoint}");
                 }
                 if(sendResultsToLog == LogVerbosity.EVERYTHING) {
                     Debug.Log($"[Cache]{endpoint}\n<= {cacheData[0]}");
@@ -158,7 +159,6 @@ namespace STCommander
             }
             return (res, result); // Done!
         }
-
         public async static Task<(ServerResult, T)> RequestByPassCache<T>( string endpoint, RequestMethod method, CancellationToken cancel, string payload = null, string authToken = null ) {
             // Remove any starting or trailing slashes.
             endpoint = endpoint.Trim('/');
