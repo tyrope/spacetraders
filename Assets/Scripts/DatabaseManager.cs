@@ -12,7 +12,7 @@ namespace STCommander
     {
         public static DatabaseManager instance;
 
-        private readonly IDbConnection sqlConnection = new SqliteConnection();
+        private readonly SqliteConnection sqlConnection = new SqliteConnection();
 
         private readonly SqlLogVerbosity sendSqlToLog = SqlLogVerbosity.EVERYTHING; //TODO Sql Verbosity lives here.
         private enum SqlLogVerbosity { NONE, ERROR_ONLY, WRITE_ONLY, WRITE_AND_SCALAR, EVERYTHING }
@@ -29,7 +29,7 @@ namespace STCommander
                 string query = Resources.Load<TextAsset>("stCommanderSchema.sql").text;
                 SqliteCommand sqlCommand = new SqliteCommand(query);
                 sqlConnection.Open();
-                sqlCommand.Connection = (SqliteConnection) sqlConnection;
+                sqlCommand.Connection = sqlConnection;
                 sqlCommand.ExecuteNonQuery();
                 sqlCommand.Dispose();
                 sqlConnection.Close();
@@ -59,14 +59,14 @@ namespace STCommander
             SqliteCommand command = new SqliteCommand(query);
             List<List<object>> returnValues = new List<List<object>>();
             List<object> row = new List<object>();
-            sqlConnection.Open();
-            command.Connection = (SqliteConnection) sqlConnection;
+           await sqlConnection.OpenAsync();
+            command.Connection = sqlConnection;
             IDataReader reader;
             try {
                 reader = await command.ExecuteReaderAsync(cancel);
             } catch(SqliteException e) {
                 await command.DisposeAsync();
-                sqlConnection.Close();
+                await sqlConnection.CloseAsync();
                 if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
                     Debug.LogError($"SQL Exception from query:\n{query}");
                     Debug.LogException(e);
@@ -86,7 +86,7 @@ namespace STCommander
             }
             reader.Dispose();
             await command.DisposeAsync();
-            sqlConnection.Close();
+            await sqlConnection.CloseAsync();
             if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
             if(sendSqlToLog >= SqlLogVerbosity.EVERYTHING)
                 Debug.Log($"DatabaseManager::SelectQuery() -- Query parsed. ({returnValues.Count} rows)\n{query}");
@@ -95,14 +95,14 @@ namespace STCommander
 
         public async Task<int> WriteQuery( string query, CancellationToken cancel ) {
             SqliteCommand command = new SqliteCommand(query);
-            sqlConnection.Open();
-            command.Connection = (SqliteConnection) sqlConnection;
+            await sqlConnection.OpenAsync();
+            command.Connection = sqlConnection;
             int result;
             try {
                 result = await command.ExecuteNonQueryAsync(cancel);
             } catch(SqliteException e) {
                 await command.DisposeAsync();
-                sqlConnection.Close();
+                await sqlConnection.CloseAsync();
                 if(sendSqlToLog >= SqlLogVerbosity.ERROR_ONLY) {
                     Debug.LogError($"SQL Exception from query:\n{query}");
                     Debug.LogException(e);
@@ -110,7 +110,7 @@ namespace STCommander
                 return default;
             }
             await command.DisposeAsync();
-            sqlConnection.Close();
+            await sqlConnection.CloseAsync();
             if(cancel.IsCancellationRequested) { return default; } // Don't log or return anything useful on cancellations.
             if(sendSqlToLog >= SqlLogVerbosity.WRITE_ONLY)
                 Debug.Log($"DatabaseManager::WriteQuery() -- Query parsed. ({result} rows)\n{query}");
