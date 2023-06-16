@@ -24,16 +24,11 @@ namespace STCommander
             _rowid = rowid;
         }
 
-        public void SaveRowId() {
+        public async void SaveRowId() {
             if(_rowid < 0) { return; } // No need to save.
 
             // ShipRequirements: power (INTEGER), crew (INTEGER), slots (INTEGER)
-            int rows = DatabaseManager.instance.WriteQuery($"INSERT INTO ShipRequirements (power, crew, slots) VALUES ({Power},{Crew},{Slots});", CancellationToken.None).Result;
-            if(rows == 1) {
-                _rowid = DatabaseManager.instance.GetLatestRowid(CancellationToken.None).Result;
-            } else {
-                UnityEngine.Debug.LogError("Failed to insert data");
-            }
+            _rowid = await DatabaseManager.instance.WriteQuery($"INSERT INTO ShipRequirements (power, crew, slots) VALUES ({Power},{Crew},{Slots}); SELECT last_insert_rowid();", CancellationToken.None, true);
         }
 
         /// <summary>
