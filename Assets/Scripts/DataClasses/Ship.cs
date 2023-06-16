@@ -32,18 +32,18 @@ namespace STCommander
                 if(cancel.IsCancellationRequested) { return default; }
 
                 List<List<object>> modules = await DatabaseManager.instance.SelectQuery(
-                    "SELECT symbol, capacity, range, name, description, power, crew, slots FROM ShipModule LEFT JOIN ShipRequirements Requirement ON ShipModule.requirements=Requirement.rowid " +
+                    "SELECT symbol, capacity, range, name, description, power, crew, slots, Req.rowid FROM ShipModule LEFT JOIN ShipRequirements Req ON ShipModule.requirements=Req.rowid " +
                     $"LEFT JOIN Ship_ShipModules_relationship Relationship ON Relationship.shipModule=ShipModule.Symbol WHERE Relationship.ship='{ship[0]}'", cancel);
                 if(cancel.IsCancellationRequested) { return default; }
 
                 List<ShipMount> mounts = new List<ShipMount>();
                 foreach(List<object> mount in await DatabaseManager.instance.SelectQuery(
-                    "SELECT symbol,name,description,strength,power,crew,slots FROM ShipMount LEFT JOIN ShipRequirements Req ON ShipMount.requirements=Req.rowid " +
+                    "SELECT symbol,name,description,strength,power,crew,slots,Req.rowid FROM ShipMount LEFT JOIN ShipRequirements Req ON ShipMount.requirements=Req.rowid " +
                     $"LEFT JOIN Ship_ShipMounts_relationship Relationship ON Relationship.shipMount=shipMount.symbol WHERE Relationship.ship='{ship[0]}';", cancel)) {
                     if(cancel.IsCancellationRequested) { return default; }
                     mounts.Add(new ShipMount(
                         mount,
-                        (await DatabaseManager.instance.SelectQuery($"SELECT Deposit FROM ShipMount_Deposits_relationship WHERE ShipMount_Deposits_relationship.shipMount='{mount[0]}';", cancel))[0]
+                        (await DatabaseManager.instance.SelectQuery($"SELECT Deposit FROM ShipMount_Deposits_relationship WHERE shipMount='{mount[0]}';", cancel))[0]
                         ));
                 }
                 if(cancel.IsCancellationRequested) { return default; }
@@ -101,20 +101,15 @@ namespace STCommander
         public async Task<bool> SaveToCache( CancellationToken cancel ) {
             string query = "BEGIN TRANSACTION;\n";
 
-            // ShipRegistration:  shipSymbol (TEXT NOT NULL), name (TEXT NOT NULL), factionSymbol (TEXT NOT NULL), role (TEXT NOT NULL)
-            query += $"INSERT INTO ShipRegistration (shipSymbol, name, factionSymbol, role) VALUES ('{symbol}', '{registration.name}', '{registration.factionSymbol}', '{registration.role}') " +
-                "ON CONFLICT(shipSymbol) DO UPDATE SET name=excluded.name,factionSymbol=excluded.factionSymbol,role=excluded.role;\n";
-
-            // ShipNav: shipSymbol (TEXT NOT NULL), systemSymbol (TEXT NOT NULL), waypointSymbol (TEXT NOT NULL), status (TEXT NOT NULL), flightMode (TEXT NOT NULL), destination (TEXT NOT NULL),
-            //          departure (TEXT NOT NULL), departureTime (INTEGER NOT NULL), arrival (INTEGER NOT NULL)
-            query += "INSERT INTO ShipNav (shipSymbol,systemSymbol,waypointSymbol,status,flightMode,destination,departure,departureTime,arrival) VALUES ('" +
-                $"{symbol}','{nav.systemSymbol}','{nav.waypointSymbol}','{nav.status}','{nav.flightMode}','{nav.route.DestSymbol}','{nav.route.DeptSymbol}',{nav.route.departureTimestamp},{nav.route.arrivalTimestamp})" +
-                "ON CONFLICT(shipSymbol) DO UPDATE SET systemSymbol=excluded.systemSymbol,waypointSymbol=excluded.waypointSymbol,status=excluded.status,flightMode=excluded.flightMode,destination=excluded.destination," +
-                "departure=excluded.departure,departureTime=excluded.departureTime,arrival=excluded.arrival;\n";
-
-            // ShipCrew: shipSymbol (TEXT NOT NULL), current (INTEGER NOT NULL), required (INTEGER NOT NULL), capacity (INTEGER NOT NULL), rotation (TEXT NOT NULL), morale (INTEGER NOT NULL), wages (INTEGER NOT NULL)
-            query += $"INSERT INTO ShipCrew (shipSymbol,\"current\",required,capacity,rotation,morale,wages) VALUES ('{symbol}',{crew.current},{crew.required},{crew.capacity},'{crew.rotation}',{crew.morale},{crew.wages})" +
-                "ON CONFLICT(shipSymbol) DO UPDATE SET \"current\"=excluded.current,required=excluded.required,capacity=excluded.capacity,rotation=excluded.rotation,morale=excluded.morale,wages=excluded.wages;\n";
+            await SaveCargoItems(cancel); // This needs to be done seperately because we need row ids, which we don't get in a transaction like this.
+            if(cargo.inventory != null && cargo.inventory.Length > 0) {
+                // Ship_ShipCargoItem_relationship: shipCargoItem (INTEGER NOT NULL), ship (TEXT NOT NULL)
+                query += "INSERT OR IGNORE INTO Ship_ShipCargoItem_relationship (shipCargoItem, ship) VALUES ";
+                foreach(Cargo.CargoItem item in cargo.inventory) {
+                    query += $"({item.rowid}, '{symbol}'),";
+                }
+                query = query[0..^1] + ";"; // Replace last comma with semicolon.
+            }
 
             // Ship: symbol (TEXT NOT NULL), frame (TEXT), reactor (TEXT), engine (TEXT NOT NULL), cargoCapacity (INTEGER NOT NULL), cargoUnits (INTEGER NOT NULL), fuelCurrent (INTEGER NOT NULL),
             //       fuelCapacity (INTEGER NOT NULL), fuelAmount (INTEGER), fuelTimestamp (INTEGER), frameCondition (INTEGER), reactorCondition (INTEGER), engineCondition (INTEGER NOT NULL), lastEdited (INTEGER NOT NULL)
@@ -123,10 +118,92 @@ namespace STCommander
                 $"{reactor.condition},{engine.condition},STRFTIME('%s')) ON CONFLICT(symbol) DO UPDATE SET frame=excluded.frame,reactor=excluded.reactor,engine=excluded.engine,cargoCapacity=excluded.cargoCapacity," +
                 "cargoUnits=excluded.cargoUnits,fuelCurrent=excluded.fuelCurrent,fuelCapacity=excluded.fuelCapacity,fuelAmount=excluded.fuelAmount,fuelTimestamp=excluded.fuelTimestamp,frameCondition=excluded.frameCondition," +
                 "reactorCondition=excluded.reactorCondition,engineCondition=excluded.engineCondition,lastEdited=excluded.lastEdited;\n";
+
+            // ShipCrew: shipSymbol (TEXT NOT NULL), current (INTEGER NOT NULL), required (INTEGER NOT NULL), capacity (INTEGER NOT NULL), rotation (TEXT NOT NULL), morale (INTEGER NOT NULL), wages (INTEGER NOT NULL)
+            query += $"INSERT INTO ShipCrew (shipSymbol,\"current\",required,capacity,rotation,morale,wages) VALUES ('{symbol}',{crew.current},{crew.required},{crew.capacity},'{crew.rotation}',{crew.morale},{crew.wages})" +
+                "ON CONFLICT(shipSymbol) DO UPDATE SET \"current\"=excluded.current,required=excluded.required,capacity=excluded.capacity,rotation=excluded.rotation,morale=excluded.morale,wages=excluded.wages;\n";
+
+            // ShipEngine: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), speed (INTEGER NOT NULL), requirements (INTEGER NOT NULL)
+            query += $"INSERT OR IGNORE INTO ShipEngine (symbol, name, description, speed, requirements) VALUES ('{engine.symbol}','{engine.name}','{engine.description}',{engine.speed},{engine.requirements.Rowid});";
+
+            // ShipFrame: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), moduleSlots (INTEGER NOT NULL), mountingPoints (INTEGER NOT NULL), fuelCapacity (INTEGER NOT NULL), requirements (INTEGER NOT NULL)
+            query += "INSERT OR IGNORE INTO ShipFrame (symbol, name, description, moduleSlots, mountingPoints, fuelCapacity, requirements) VALUES " +
+                $"('{frame.symbol}','{frame.name}','{frame.description}',{frame.moduleSlots},{frame.mountingPoints},{frame.fuelCapacity},{frame.requirements.Rowid});";
+
+            // ShipModule: symbol (TEXT NOT NULL), capacity (INTEGER), range (INTEGER), name (TEXT NOT NULL), description (TEXT NOT NULL), requirements (INTEGER NOT NULL)
+            if(Modules != null && Modules.Length > 0) {
+                query += "INSERT OR IGNORE INTO ShipModule (symbol, capacity, range, name, description, requirements) VALUES ";
+                foreach(ShipModule module in Modules) {
+                    query += $"('{module.symbol}',{module.capacity},{module.range},'{module.name}','{module.description}',{module.requirements.Rowid}),";
+                }
+                query = query[0..^1] + ";"; // Replace last comma with semicolon.
+            }
+
+            if(Mounts != null && Mounts.Length > 0) {
+                // ShipMount: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), strength (INTEGER), requirements (INTEGER NOT NULL)
+                query += "INSERT OR IGNORE INTO ShipMount (symbol,name,description,strength,requirements) VALUES ";
+                foreach(ShipMount mount in Mounts) {
+                    query += $"('{mount.symbol}','{mount.name}','{mount.description}',{mount.strength},{mount.requirements.Rowid}),";
+                }
+
+                // ShipMount_Deposits_relationship shipMount (TEXT NOT NULL), deposit (TEXT NOT NULL)
+                // !!WHEN EDITING THIS, ALSO EDIT THE NUMBER AFTER THE FOREACH!!
+                query += "INSERT OR IGNORE INTO ShipMount_Deposits_relationship (shipMount,deposit) VALUES ";
+                bool revert = true;
+                foreach(ShipMount mount in Mounts) {
+                    if(mount.deposits == null) {
+                        continue;
+                    }
+                    foreach(string deposit in mount.deposits) {
+                        query += $"('{mount.name}','{deposit}'),";
+                        revert = false;
+                    }
+                }
+                if(revert) {
+                    query = query[0..^81]; // Remove latest query (which is currently 81 characters.)
+                } else {
+                    query = query[0..^1] + ";"; // Replace last comma with semicolon.
+                }
+            }
+
+            // ShipNav: shipSymbol (TEXT NOT NULL), systemSymbol (TEXT NOT NULL), waypointSymbol (TEXT NOT NULL), status (TEXT NOT NULL), flightMode (TEXT NOT NULL), destination (TEXT NOT NULL),
+            //          departure (TEXT NOT NULL), departureTime (INTEGER NOT NULL), arrival (INTEGER NOT NULL)
+            query += "INSERT INTO ShipNav (shipSymbol,systemSymbol,waypointSymbol,status,flightMode,destination,departure,departureTime,arrival) VALUES ('" +
+                $"{symbol}','{nav.systemSymbol}','{nav.waypointSymbol}','{nav.status}','{nav.flightMode}','{nav.route.DestSymbol}','{nav.route.DeptSymbol}',{nav.route.departureTimestamp},{nav.route.arrivalTimestamp})" +
+                "ON CONFLICT(shipSymbol) DO UPDATE SET systemSymbol=excluded.systemSymbol,waypointSymbol=excluded.waypointSymbol,status=excluded.status,flightMode=excluded.flightMode,destination=excluded.destination," +
+                "departure=excluded.departure,departureTime=excluded.departureTime,arrival=excluded.arrival;\n";
+
+            // ShipReactor: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), powerOutput (INTEGER NOT NULL), requirements (INTEGER NOT NULL)
+
+            // ShipRegistration:  shipSymbol (TEXT NOT NULL), name (TEXT NOT NULL), factionSymbol (TEXT NOT NULL), role (TEXT NOT NULL)
+            query += $"INSERT INTO ShipRegistration (shipSymbol, name, factionSymbol, role) VALUES ('{symbol}', '{registration.name}', '{registration.factionSymbol}', '{registration.role}') " +
+                "ON CONFLICT(shipSymbol) DO UPDATE SET name=excluded.name,factionSymbol=excluded.factionSymbol,role=excluded.role;\n";
+
             // Send it!
             query += "COMMIT;";
             return await DatabaseManager.instance.WriteQuery(query, cancel) > 0;
         }
+
+        private async Task<bool> SaveCargoItems( CancellationToken cancel ) {
+            // ShipCargoItem: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), units (INTEGER NOT NULL)
+            string query;
+            int rows;
+            foreach(Cargo.CargoItem item in cargo.inventory) {
+                if(item.rowid < 0) { // invalid rowid.
+                    query = "INSERT INTO ShipCargoItem (symbol, name, description, units) VALUES ('{item.symbol}','{item.name}','{item.description}',{item.units});";
+                    rows = await DatabaseManager.instance.WriteQuery(query, cancel);
+                    if(cancel.IsCancellationRequested || rows != 1) { return false; }
+                    item.rowid = await DatabaseManager.instance.GetLatestRowid(cancel);
+                    if(cancel.IsCancellationRequested) { return false; }
+                } else {
+                    query = $"UPDATE ShipCargoItem SET symbol='{item.symbol}',name='{item.name}',description='{item.description}', units={item.units} WHERE rowid={item.rowid} LIMIT 1";
+                    rows = await DatabaseManager.instance.WriteQuery(query, cancel);
+                    if(cancel.IsCancellationRequested || rows != 1) { return false; }
+                }
+            }
+            return true;
+        }
+
         public enum Role { FABRICATOR, HARVESTER, HAULER, INTERCEPTOR, EXCAVATOR, TRANSPORT, REPAIR, SURVEYOR, COMMAND, CARRIER, PATROL, SATELLITE, EXPLORER, REFINERY };
         public class Registration
         {
@@ -148,6 +225,7 @@ namespace STCommander
         {
             public class CargoItem
             {
+                public int rowid = -1;
                 public string symbol;
                 public string name;
                 public string description;

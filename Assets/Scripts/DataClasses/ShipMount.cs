@@ -5,38 +5,26 @@ namespace STCommander
 {
     public class ShipMount
     {
-        public enum MountType
-        {
-            MOUNT_GAS_SIPHON_I, MOUNT_GAS_SIPHON_II, MOUNT_GAS_SIPHON_III, MOUNT_SURVEYOR_I, MOUNT_SURVEYOR_II,
-            MOUNT_SURVEYOR_III, MOUNT_SENSOR_ARRAY_I, MOUNT_SENSOR_ARRAY_II, MOUNT_SENSOR_ARRAY_III, MOUNT_MINING_LASER_I,
-            MOUNT_MINING_LASER_II, MOUNT_MINING_LASER_III, MOUNT_LASER_CANNON_I, MOUNT_MISSILE_LAUNCHER_I, MOUNT_TURRET_I
-        }
-        public enum Deposit
-        {
-            QUARTZ_SAND, SILICON_CRYSTALS, PRECIOUS_STONES, ICE_WATER, AMMONIA_ICE,
-            IRON_ORE, COPPER_ORE, SILVER_ORE, ALUMINUM_ORE, GOLD_ORE,
-            PLATINUM_ORE, DIAMONDS, URANITE_ORE, MERITIUM_ORE
-        }
-        public MountType symbol;
+        public string symbol;
         public string name;
         public string description;
         public int strength;
-        public Deposit[] deposits;
+        public string[] deposits;
         public ShipRequirements requirements;
 
         public ShipMount( List<object> fields, List<object> deps ) {
-            symbol = Enum.Parse<MountType>((string) fields[0]);
+            symbol = (string) fields[0];
             name = (string) fields[1];
             description = (string) fields[2];
             strength = Convert.ToInt32(fields[3]);
 
-            List<Deposit> listdeps = new List<Deposit>();
+            List<string> listdeps = new List<string>();
             foreach(string dep in deps) {
-                listdeps.Add(Enum.Parse<Deposit>(dep));
+                listdeps.Add(dep);
             }
             deposits = listdeps.ToArray();
 
-            requirements = new ShipRequirements(Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]), Convert.ToInt32(fields[7]));
+            requirements = new ShipRequirements(Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]), Convert.ToInt32(fields[7]), Convert.ToInt32(fields[8]));
         }
 
         /// <summary>

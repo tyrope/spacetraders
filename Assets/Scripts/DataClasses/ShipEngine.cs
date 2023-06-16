@@ -5,8 +5,7 @@ namespace STCommander
 {
     public class ShipEngine
     {
-        public enum EngineType { ENGINE_IMPULSE_DRIVE_I, ENGINE_ION_DRIVE_I, ENGINE_ION_DRIVE_II, ENGINE_HYPER_DRIVE_I }
-        public EngineType symbol;
+        public string symbol;
         public string name;
         public string description;
         public int condition;
@@ -14,13 +13,13 @@ namespace STCommander
         public ShipRequirements requirements;
 
         public ShipEngine( string smbl, int cond ) {
-            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT name, description, soeed, power, crew, slots FROM ShipEngine" +
-                $"LEFT JOIN ShipRequirements Requirement ON ShipEngine.requirements=Requirement.rowid WHERE ShipEngine.symbol={smbl} LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
-            symbol = Enum.Parse<ShipEngine.EngineType>(smbl);
+            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT name, description, speed, power, crew, slots, Req.rowid FROM ShipEngine" +
+                $"LEFT JOIN ShipRequirements Req ON ShipEngine.requirements=Req.rowid WHERE ShipEngine.symbol={smbl} LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
+            symbol = smbl;
             name = (string) fields[0];
             description = (string) fields[1];
             speed = Convert.ToInt32(fields[2]);
-            requirements = new ShipRequirements(Convert.ToInt32(fields[3]), Convert.ToInt32(fields[4]), Convert.ToInt32(fields[5]));
+            requirements = new ShipRequirements(Convert.ToInt32(fields[3]), Convert.ToInt32(fields[4]), Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]));
             condition = cond;
         }
 

@@ -19,7 +19,7 @@ namespace STCommander
             name = (string) fields[3];
             description = (string) fields[4];
 
-            requirements = new ShipRequirements(Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]), Convert.ToInt32(fields[7]));
+            requirements = new ShipRequirements(Convert.ToInt32(fields[5]), Convert.ToInt32(fields[6]), Convert.ToInt32(fields[7]), Convert.ToInt32(fields[8]));
         }
 
         /// <summary>

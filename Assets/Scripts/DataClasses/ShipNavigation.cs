@@ -45,22 +45,22 @@ namespace STCommander
 
         public ShipNavigation(string shipSymbol) {
             // This does an async thingy synchronously. Disgusting but hey ho.
-            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT systemSymbol,waypointSymbol,destination,departure,departure,departureTime,arrival,status,flightMode "
+            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT systemSymbol,waypointSymbol,destination,departure,departureTime,arrival,status,flightMode "
                     + $"FROM ShipNav WHERE shipSymbol='{shipSymbol}' LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
             systemSymbol = (string) fields[0];
             waypointSymbol = (string) fields[1];
 
+            route = new Route();
             try {
                 // Eww, async stuff done syncronously.
                 route.destination = Waypoint.GetWaypointFromSymbol((string) fields[2]);
                 route.departure = Waypoint.GetWaypointFromSymbol((string) fields[3]);
             } catch(NullReferenceException) {
-                // Don't do shit.
+                // Don't set these if they don't exist.
             }
 
-            // TODO These are broken.
-            route.departureTime = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt32(fields[4])).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
-            route.arrival = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt32(fields[5])).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+            route.departureTime = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(fields[4])).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
+            route.arrival = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(fields[5])).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
             status = Enum.Parse<Status>((string) fields[6]);
             flightMode = Enum.Parse<FlightMode>((string) fields[7]);
         }
