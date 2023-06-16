@@ -111,15 +111,21 @@ namespace STCommander
         }
 
         private async Task SetGalacticPosition() {
-            ServerResult res;
-
             SolarSystem departureSystem;
-            (res, departureSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DeptSymbol}", TimeSpan.MaxValue, RequestMethod.GET, AsyncCancel.Token);
-            if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
+            if(ship.nav.route.departure != null) {
+                departureSystem = await SolarSystem.GetSystemFromSymbol(ship.nav.route.departure.systemSymbol, AsyncCancel.Token);
+            } else {
+                departureSystem = await SolarSystem.GetSystemFromSymbol(ship.nav.systemSymbol, AsyncCancel.Token);
+            }
+            if(AsyncCancel.IsCancellationRequested) { return; }
 
             SolarSystem destinationSystem;
-            (res, destinationSystem) = await ServerManager.RequestSingle<SolarSystem>($"systems/{ship.nav.route.DestSymbol}", TimeSpan.MaxValue, RequestMethod.GET, AsyncCancel.Token);
-            if(AsyncCancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return; }
+            if(ship.nav.route.departure != null) {
+                destinationSystem = await SolarSystem.GetSystemFromSymbol(ship.nav.route.destination.systemSymbol, AsyncCancel.Token);
+            } else {
+                destinationSystem = await SolarSystem.GetSystemFromSymbol(ship.nav.systemSymbol, AsyncCancel.Token);
+            }
+            if(AsyncCancel.IsCancellationRequested) { return; }
 
             Vector2 currPos;
             Vector2 from = new Vector2(departureSystem.x, departureSystem.y);

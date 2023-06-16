@@ -27,7 +27,7 @@ namespace STCommander
         private readonly Dictionary<SolarSystem, GameObject> solarSystemObjects = new Dictionary<SolarSystem, GameObject>();
         private readonly CancellationTokenSource AsyncCancel = new CancellationTokenSource();
 
-        void Start() {
+        void Awake() {
             SystemContainer = new GameObject("SystemContainer").transform;
             SystemContainer.position = Vector3.zero;
             SystemContainer.parent = gameObject.transform.parent;
@@ -86,9 +86,7 @@ namespace STCommander
         public float GetMapScale() {
             if(SelectedSystem != null) {
                 float maxMagnitude = 0f;
-                Waypoint wp;
-                foreach(string symbol in SelectedSystem.waypoints) {
-                    wp = Waypoint.Instances[symbol];
+                foreach(Waypoint wp in SelectedSystem.waypoints) {
                     float mag = new Vector2(wp.x, wp.y).magnitude;
                     if(mag > maxMagnitude) { maxMagnitude = mag; }
                 }
@@ -154,6 +152,9 @@ namespace STCommander
                 // Skip out-of-bounds systems.
                 if(sys.x < minBounds.x || sys.x > maxBounds.x || sys.y < minBounds.y || sys.y > maxBounds.y) { continue; }
 
+                // Skip already displayed systems. (Yay async!)
+                if(solarSystemObjects.ContainsKey(sys)) { continue; }
+
                 displayedSystems++;
                 go = SpawnSystem(sys);
                 solarSystemObjects.Add(sys, go);
@@ -198,13 +199,13 @@ namespace STCommander
 
         private async Task CenterMapOnHQ() {
             // Center on the Player HQ.
-            (ServerResult result, Agent agent) = await ServerManager.RequestSingle<Agent>("my/agent", new System.TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
+            (ServerResult result, Agent agent) = await ServerManager.RequestSingle<Agent>("my/agent", new TimeSpan(0, 1, 0), RequestMethod.GET, AsyncCancel.Token);
             if(AsyncCancel.IsCancellationRequested) { return; }
             if(result.result == ServerResult.ResultType.SUCCESS) {
                 // Query the HQ waypoint for system name.
                 SolarSystem hq;
                 string hqSystem = agent.headquarters.Substring(0, agent.headquarters.LastIndexOf('-'));
-                (result, hq) = await ServerManager.RequestSingle<SolarSystem>($"systems/{hqSystem}", new System.TimeSpan(1, 0, 0), RequestMethod.GET, AsyncCancel.Token);
+                (result, hq) = await ServerManager.RequestSingle<SolarSystem>($"systems/{hqSystem}", TimeSpan.MaxValue, RequestMethod.GET, AsyncCancel.Token);
                 if(AsyncCancel.IsCancellationRequested) { return; }
                 if(result.result != ServerResult.ResultType.SUCCESS) { Debug.LogError($"Failed to load Player HQ.\n{result}"); return; }
                 mapCenter = new Vector2(hq.x, hq.y);

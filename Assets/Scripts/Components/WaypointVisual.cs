@@ -129,9 +129,7 @@ namespace STCommander
         private void SetParentOrbit() {
             if(mapManager.SelectedSystem != null) {
                 // Main star is the middle point.
-                Waypoint wp;
-                foreach(string wpsym in mapManager.SelectedSystem.waypoints) {
-                    wp = Waypoint.Instances[wpsym];
+                foreach(Waypoint wp in mapManager.SelectedSystem.waypoints) {
                     if(wp.orbitals != null) {
                         for(int i = 0; i < wp.orbitals.Length; i++) {
                             if(wp.orbitals[i] == waypoint.symbol) {

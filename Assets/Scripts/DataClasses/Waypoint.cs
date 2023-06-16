@@ -9,7 +9,7 @@ namespace STCommander
 {
     public class Waypoint : IDataClass
     {
-        public readonly static Dictionary<string, Waypoint> Instances = new Dictionary<string, Waypoint>();
+        private readonly static Dictionary<string, Waypoint> Instances = new Dictionary<string, Waypoint>();
 
         public class Chart
         {
@@ -139,19 +139,21 @@ namespace STCommander
             return retString;
         }
 
-        public static Waypoint GetWaypointFromSymbol( string symbol ) {
+        public async static Task<Waypoint> GetWaypointFromSymbol( string symbol, CancellationToken cancel ) {
             // Exists!
             if(Instances.ContainsKey(symbol)){
                 return Instances[symbol];
             }
-            /* DEBUG Commented out due to infinite loop(?) bug.
-            // What's that?
+
+            // TODO This code freezes the editor, somehow? I'm gonna have to add a debugger to this.
+            /*
             string system = string.Join('-', symbol.Split('-')[0..^1]);
             (ServerResult res, Waypoint wp) = await ServerManager.RequestSingle<Waypoint>($"systems/{system}/waypoints/{symbol}", new TimeSpan(5, 0, 0), RequestMethod.GET, cancel);
             if(cancel.IsCancellationRequested || res.result != ServerResult.ResultType.SUCCESS) { return default; }
+            Instances.Add(wp.symbol, wp);
             return wp;
             */
-            return null; // Temporary fix.
+            return null; // DEBUG Workaround.
         }
 
         /// <summary>
