@@ -102,7 +102,7 @@ namespace STCommander
             if(cacheData != null && cacheData.Count > 0) {
                 // Success!
                 if(sendResultsToLog == LogVerbosity.EVERYTHING) {
-                    Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
+                    Debug.Log($"[Cache]{endpoint}\n<= {cacheData.Count}x {typeof(T)}: {string.Join(" -- ", cacheData)}");
                 }
                 return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), cacheData.Cast<T>().ToList());
             }
@@ -138,7 +138,7 @@ namespace STCommander
                     Debug.LogWarning("ServerManager::RequestSingle() -- More than 1 result received, ignoring all but the first.");
                 }
                 if(sendResultsToLog == LogVerbosity.EVERYTHING) {
-                    Debug.Log($"[Cache]{endpoint}\n<= {cacheData}");
+                    Debug.Log($"[Cache]{endpoint}\n<= {cacheData[0]}");
                 }
                 return (new ServerResult(ServerResult.ResultType.SUCCESS, "Loaded from cache"), (T) cacheData[0]);
             }
