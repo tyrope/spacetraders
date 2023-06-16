@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace STCommander
 {
@@ -15,8 +16,8 @@ namespace STCommander
             public int departureTimestamp => UnityEngine.Mathf.RoundToInt((float) (DateTime.Parse(departureTime) - DateTime.UnixEpoch).TotalSeconds);
             public string arrival;
             public int arrivalTimestamp => UnityEngine.Mathf.RoundToInt((float) (DateTime.Parse(arrival) - DateTime.UnixEpoch).TotalSeconds);
-            public string DestSymbol => destination.symbol;
-            public string DeptSymbol => departure.symbol;
+            public string DestSymbol => destination?.symbol;
+            public string DeptSymbol => departure?.symbol;
             internal DateTime ETA => DateTime.Parse(arrival);
             internal TimeSpan TotalFlightTime => ETA - DateTime.Parse(departureTime);
         }
@@ -43,7 +44,7 @@ namespace STCommander
             }
         }
 
-        public ShipNavigation(string shipSymbol) {
+        public ShipNavigation( string shipSymbol ) {
             // This does an async thingy synchronously. Disgusting but hey ho.
             List<object> fields = DatabaseManager.instance.SelectQuery("SELECT systemSymbol,waypointSymbol,destination,departure,departureTime,arrival,status,flightMode "
                     + $"FROM ShipNav WHERE shipSymbol='{shipSymbol}' LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
@@ -51,14 +52,8 @@ namespace STCommander
             waypointSymbol = (string) fields[1];
 
             route = new Route();
-            try {
-                // Eww, async stuff done syncronously.
-                route.destination = Waypoint.GetWaypointFromSymbol((string) fields[2]);
-                route.departure = Waypoint.GetWaypointFromSymbol((string) fields[3]);
-            } catch(NullReferenceException) {
-                // Don't set these if they don't exist.
-            }
-
+            route.destination = Waypoint.GetWaypointFromSymbol((string) fields[2], CancellationToken.None).Result;
+            route.departure = Waypoint.GetWaypointFromSymbol((string) fields[3], CancellationToken.None).Result;
             route.departureTime = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(fields[4])).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
             route.arrival = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(fields[5])).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
             status = Enum.Parse<Status>((string) fields[6]);

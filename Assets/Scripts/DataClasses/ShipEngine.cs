@@ -13,8 +13,8 @@ namespace STCommander
         public ShipRequirements requirements;
 
         public ShipEngine( string smbl, int cond ) {
-            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT name, description, speed, power, crew, slots, Req.rowid FROM ShipEngine" +
-                $"LEFT JOIN ShipRequirements Req ON ShipEngine.requirements=Req.rowid WHERE ShipEngine.symbol={smbl} LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
+            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT name, description, speed, power, crew, slots, Req.rowid FROM ShipEngine " +
+                $"LEFT JOIN ShipRequirements Req ON ShipEngine.requirements=Req.rowid WHERE ShipEngine.symbol='{smbl}' LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
             symbol = smbl;
             name = (string) fields[0];
             description = (string) fields[1];

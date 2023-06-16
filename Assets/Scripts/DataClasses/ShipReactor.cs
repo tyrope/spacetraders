@@ -14,8 +14,14 @@ namespace STCommander
         public ShipRequirements requirements;
 
         public ShipReactor( string smbl, int cond ) {
-            List<object> fields = DatabaseManager.instance.SelectQuery("SELECT name, description, powerOutput, power, crew, slots FROM ShipReactor" +
-                   $"LEFT JOIN ShipRequirements Requirement ON ShipReactor.requirements=Requirement.rowid WHERE ShipReactor.symbol='{smbl}' LIMIT 1;", System.Threading.CancellationToken.None).Result[0];
+            List<List<object>> result = DatabaseManager.instance.SelectQuery("SELECT name, description, powerOutput, power, crew, slots FROM ShipReactor " +
+                   $"LEFT JOIN ShipRequirements Requirement ON ShipReactor.requirements=Requirement.rowid WHERE ShipReactor.symbol='{smbl}' LIMIT 1;", System.Threading.CancellationToken.None).Result;
+            if(result == null || result.Count < 1) {
+                UnityEngine.Debug.LogError("Failed to grab a ShipReactor from the database.");
+                return;
+            }
+            List<object> fields = result[0];
+
             symbol = Enum.Parse<ReactorType>(smbl);
             name = (string) fields[0];
             description = (string) fields[1];

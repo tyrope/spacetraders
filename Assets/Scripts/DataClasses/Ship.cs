@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -47,12 +46,21 @@ namespace STCommander
                         ));
                 }
                 if(cancel.IsCancellationRequested) { return default; }
-                ret.Add(new Ship(ship, modules, mounts, cargo));
+                if(Instances.ContainsKey((string) ship[0])) {
+                    ret.Add(Instances[(string) ship[0]].Update(ship, modules, mounts, cargo));
+                } else {
+                    ret.Add(new Ship(ship, modules, mounts, cargo));
+                }
             }
             return ret;
         }
 
         public Ship( List<object> fields, List<List<object>> mdls, List<ShipMount> mnts, List<List<object>> manifest ) {
+            Update(fields, mdls, mnts, manifest);
+            Instances.Add(symbol, this);
+        }
+
+        private Ship Update( List<object> fields, List<List<object>> mdls, List<ShipMount> mnts, List<List<object>> manifest ) {
             symbol = (string) fields[0];
             nav = new ShipNavigation(symbol);
             frame = new ShipFrame((string) fields[1], Convert.ToInt32(fields[2]));
@@ -73,7 +81,7 @@ namespace STCommander
             fuel.current = Convert.ToInt32(fields[18]);
             fuel.capacity = Convert.ToInt32(fields[19]);
             fuel.consumed.amount = Convert.ToInt32(fields[20]);
-            fuel.consumed.timestamp = (string) fields[21];
+            fuel.consumed.timestamp = (DateTime.UnixEpoch + TimeSpan.FromSeconds(Convert.ToInt32(fields[21]))).ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'");
             lastEdited = Convert.ToInt32(fields[22]);
 
             List<ShipModule> mods = new List<ShipModule>();
@@ -94,8 +102,7 @@ namespace STCommander
                 });
             }
             cargo.inventory = inv.ToArray();
-
-            Instances.Add(symbol, this);
+            return this;
         }
 
         public async Task<bool> SaveToCache( CancellationToken cancel ) {
@@ -104,7 +111,7 @@ namespace STCommander
             await SaveCargoItems(cancel); // This needs to be done seperately because we need row ids, which we don't get in a transaction like this.
             if(cargo.inventory != null && cargo.inventory.Length > 0) {
                 // Ship_ShipCargoItem_relationship: shipCargoItem (INTEGER NOT NULL), ship (TEXT NOT NULL)
-                query += "INSERT OR IGNORE INTO Ship_ShipCargoItem_relationship (shipCargoItem, ship) VALUES ";
+                query += "INSERT OR IGNORE INTO Ship_ShipCargoItem_relationship (shipCargoItem,ship) VALUES ";
                 foreach(Cargo.CargoItem item in cargo.inventory) {
                     query += $"({item.rowid}, '{symbol}'),";
                 }
@@ -124,27 +131,28 @@ namespace STCommander
                 "ON CONFLICT(shipSymbol) DO UPDATE SET \"current\"=excluded.current,required=excluded.required,capacity=excluded.capacity,rotation=excluded.rotation,morale=excluded.morale,wages=excluded.wages;\n";
 
             // ShipEngine: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), speed (INTEGER NOT NULL), requirements (INTEGER NOT NULL)
-            query += $"INSERT OR IGNORE INTO ShipEngine (symbol, name, description, speed, requirements) VALUES ('{engine.symbol}','{engine.name}','{engine.description}',{engine.speed},{engine.requirements.Rowid});";
+            query += $"INSERT OR IGNORE INTO ShipEngine (symbol, name, description, speed, requirements) VALUES ('{engine.symbol}','{engine.name}','{engine.description.Replace("'", "''")}',{engine.speed},{engine.requirements.Rowid});\n";
 
             // ShipFrame: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), moduleSlots (INTEGER NOT NULL), mountingPoints (INTEGER NOT NULL), fuelCapacity (INTEGER NOT NULL), requirements (INTEGER NOT NULL)
             query += "INSERT OR IGNORE INTO ShipFrame (symbol, name, description, moduleSlots, mountingPoints, fuelCapacity, requirements) VALUES " +
-                $"('{frame.symbol}','{frame.name}','{frame.description}',{frame.moduleSlots},{frame.mountingPoints},{frame.fuelCapacity},{frame.requirements.Rowid});";
+                $"('{frame.symbol}','{frame.name}','{frame.description.Replace("'", "''")}',{frame.moduleSlots},{frame.mountingPoints},{frame.fuelCapacity},{frame.requirements.Rowid});\n";
 
             // ShipModule: symbol (TEXT NOT NULL), capacity (INTEGER), range (INTEGER), name (TEXT NOT NULL), description (TEXT NOT NULL), requirements (INTEGER NOT NULL)
             if(Modules != null && Modules.Length > 0) {
                 query += "INSERT OR IGNORE INTO ShipModule (symbol, capacity, range, name, description, requirements) VALUES ";
                 foreach(ShipModule module in Modules) {
-                    query += $"('{module.symbol}',{module.capacity},{module.range},'{module.name}','{module.description}',{module.requirements.Rowid}),";
+                    query += $"('{module.symbol}',{module.capacity},{module.range},'{module.name}','{module.description.Replace("'", "''")}',{module.requirements.Rowid}),";
                 }
-                query = query[0..^1] + ";"; // Replace last comma with semicolon.
+                query = query[0..^1] + ";\n"; // Replace last comma with semicolon.
             }
 
             if(Mounts != null && Mounts.Length > 0) {
                 // ShipMount: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), strength (INTEGER), requirements (INTEGER NOT NULL)
                 query += "INSERT OR IGNORE INTO ShipMount (symbol,name,description,strength,requirements) VALUES ";
                 foreach(ShipMount mount in Mounts) {
-                    query += $"('{mount.symbol}','{mount.name}','{mount.description}',{mount.strength},{mount.requirements.Rowid}),";
+                    query += $"('{mount.symbol}','{mount.name}','{mount.description.Replace("'", "''")}',{mount.strength},{mount.requirements.Rowid}),";
                 }
+                query = query[0..^1] + ";\n"; // Replace last comma with semicolon.
 
                 // ShipMount_Deposits_relationship shipMount (TEXT NOT NULL), deposit (TEXT NOT NULL)
                 // !!WHEN EDITING THIS, ALSO EDIT THE NUMBER AFTER THE FOREACH!!
@@ -162,7 +170,7 @@ namespace STCommander
                 if(revert) {
                     query = query[0..^81]; // Remove latest query (which is currently 81 characters.)
                 } else {
-                    query = query[0..^1] + ";"; // Replace last comma with semicolon.
+                    query = query[0..^1] + ";\n"; // Replace last comma with semicolon.
                 }
             }
 
@@ -174,6 +182,8 @@ namespace STCommander
                 "departure=excluded.departure,departureTime=excluded.departureTime,arrival=excluded.arrival;\n";
 
             // ShipReactor: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), powerOutput (INTEGER NOT NULL), requirements (INTEGER NOT NULL)
+            query += "INSERT OR IGNORE INTO ShipReactor (symbol,name,description,powerOutput,requirements) VALUES (" +
+                $"'{reactor.symbol}','{reactor.name}','{reactor.description.Replace("'","''")}',{reactor.output},{reactor.requirements.Rowid});\n";
 
             // ShipRegistration:  shipSymbol (TEXT NOT NULL), name (TEXT NOT NULL), factionSymbol (TEXT NOT NULL), role (TEXT NOT NULL)
             query += $"INSERT INTO ShipRegistration (shipSymbol, name, factionSymbol, role) VALUES ('{symbol}', '{registration.name}', '{registration.factionSymbol}', '{registration.role}') " +
@@ -185,19 +195,19 @@ namespace STCommander
         }
 
         private async Task<bool> SaveCargoItems( CancellationToken cancel ) {
+            if(cargo.inventory == null || cargo.inventory.Length < 1) { return true; } // Nothing to do.
+
+
             // ShipCargoItem: symbol (TEXT NOT NULL), name (TEXT NOT NULL), description (TEXT NOT NULL), units (INTEGER NOT NULL)
             string query;
-            int rows;
             foreach(Cargo.CargoItem item in cargo.inventory) {
                 if(item.rowid < 0) { // invalid rowid.
-                    query = "INSERT INTO ShipCargoItem (symbol, name, description, units) VALUES ('{item.symbol}','{item.name}','{item.description}',{item.units});";
-                    rows = await DatabaseManager.instance.WriteQuery(query, cancel);
-                    if(cancel.IsCancellationRequested || rows != 1) { return false; }
-                    item.rowid = await DatabaseManager.instance.GetLatestRowid(cancel);
+                    query = $"INSERT INTO ShipCargoItem (symbol,name,description,units) VALUES ('{item.symbol}','{item.name}','{item.description.Replace("'", "''")}',{item.units});"+DatabaseManager.RowIDQuery;
+                    item.rowid = await DatabaseManager.instance.WriteQuery(query, cancel, true);
                     if(cancel.IsCancellationRequested) { return false; }
                 } else {
-                    query = $"UPDATE ShipCargoItem SET symbol='{item.symbol}',name='{item.name}',description='{item.description}', units={item.units} WHERE rowid={item.rowid} LIMIT 1";
-                    rows = await DatabaseManager.instance.WriteQuery(query, cancel);
+                    query = $"UPDATE ShipCargoItem SET symbol='{item.symbol}',name='{item.name}',description='{item.description.Replace("'", "''")}', units={item.units} WHERE rowid={item.rowid} LIMIT 1;";
+                    int rows = await DatabaseManager.instance.WriteQuery(query, cancel);
                     if(cancel.IsCancellationRequested || rows != 1) { return false; }
                 }
             }
@@ -253,7 +263,7 @@ namespace STCommander
             }
             public int current;
             public int capacity;
-            public Consumed consumed;
+            public Consumed consumed = new Consumed();
 
             public override string ToString() {
                 return $"{current / (float) capacity * 100f:n2}%\n{current}/{capacity}";
@@ -261,16 +271,16 @@ namespace STCommander
         }
 
         public string symbol;
-        public Registration registration;
+        public Registration registration = new Registration();
         public ShipNavigation nav;
-        public Crew crew;
+        public Crew crew = new Crew();
         public ShipFrame frame;
         public ShipReactor reactor;
         public ShipEngine engine;
         public ShipModule[] Modules;
         public ShipMount[] Mounts;
-        public Cargo cargo;
-        public Fuel fuel;
+        public Cargo cargo = new Cargo();
+        public Fuel fuel = new Fuel();
         public int lastEdited;
 
         /// <summary>
