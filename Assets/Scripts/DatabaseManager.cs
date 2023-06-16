@@ -43,9 +43,9 @@ namespace STCommander
                 DestroyImmediate(this);
                 return;
             } else if(instance == null) {
+                CreateDatabaseConnection();
                 instance = this;
             }
-            CreateDatabaseConnection();
         }
 
         void OnDestroy() {
