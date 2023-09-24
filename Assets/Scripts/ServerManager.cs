@@ -56,13 +56,13 @@ namespace STCommander
             public int Amount { get; private set; } = 0;
             public readonly int limit;
             private readonly TimeSpan cooldown;
-            
+
             /// <summary>
             /// Instantiate a new ratelimit pool.
             /// </summary>
             /// <param name="poolSize">The size of the pool.</param>
             /// <param name="reset">How long it takes for the pool to refill.</param>
-            public RateLimit(int poolSize, TimeSpan reset) {
+            public RateLimit( int poolSize, TimeSpan reset ) {
                 cooldown = reset;
                 limit = poolSize;
                 ResetTime = DateTime.Now;
@@ -77,7 +77,7 @@ namespace STCommander
                     ResetTime = DateTime.Now + cooldown;
                     Amount = 1;
                     return true;
-                }else if(Amount < limit) {
+                } else if(Amount < limit) {
                     Amount++;
                     return true;
                 }
@@ -89,9 +89,9 @@ namespace STCommander
         private static readonly RateLimit TrickleLimit = new RateLimit(2, new TimeSpan(0, 0, 1));
         private static readonly RateLimit BurstLimit = new RateLimit(10, new TimeSpan(0, 0, 10));
 
-        
+
         private enum LogVerbosity { NONE, ERROR_ONLY, API_ONLY, EVERYTHING } //TODO API Verbosity switch lives here.
-        private static readonly LogVerbosity sendResultsToLog = LogVerbosity.EVERYTHING;
+        private static readonly LogVerbosity sendResultsToLog = LogVerbosity.ERROR_ONLY;
 
         public static async Task<(ServerResult, List<T>)> RequestList<T>( string endpoint, TimeSpan maxAge, RequestMethod method, CancellationToken cancel, string payload = null ) where T : IDataClass {
             // Remove any starting or trailing slashes.
@@ -117,11 +117,11 @@ namespace STCommander
                     if(await r.SaveToCache(cancel) == false) {
                         if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
                             Debug.LogError("Failed to save to cache: " + r);
-                    }else if(sendResultsToLog >= LogVerbosity.EVERYTHING) {
+                    } else if(sendResultsToLog >= LogVerbosity.EVERYTHING) {
                         Debug.Log("Saved to cache: " + r);
                     }
-                if(cancel.IsCancellationRequested) { return default; }
-            }
+                    if(cancel.IsCancellationRequested) { return default; }
+                }
             }
             return (res, result?.ToList()); // Done!
         }
@@ -216,13 +216,13 @@ namespace STCommander
                         if(sendResultsToLog >= LogVerbosity.API_ONLY)
                             Log(method, endpoint, retstring, payload: payload);
                         try {
-                        return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
+                            return (new ServerResult(ServerResult.ResultType.SUCCESS), JsonConvert.DeserializeObject<T>(retstring));
                         } catch(JsonReaderException) {
                             // This breaks and idk why.
                             if(sendResultsToLog >= LogVerbosity.ERROR_ONLY)
                                 Log(method, endpoint, "JsonReaderException trying to parse:\n" + retstring, payload: payload, error: true);
-                        return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, "Unparsable JSON"), default);
-                    }
+                            return (new ServerResult(ServerResult.ResultType.PROCESSING_ERROR, "Unparsable JSON"), default);
+                        }
                     }
                 default:
                     Debug.LogError("Theoretically unreachable code found!");
@@ -250,7 +250,7 @@ namespace STCommander
         /// <param name="payload">The JSON payload to send for POST requests.</param>
         /// <param name="authToken">The authentication token to send, if left null we'll try the token stored in PlayerPrefs.</param>
         /// <returns>An *unconnected* UnityWebRequest.</returns>
-        private static UnityWebRequest MakeRequest( RequestMethod method, string uri, string payload, string authToken) {
+        private static UnityWebRequest MakeRequest( RequestMethod method, string uri, string payload, string authToken ) {
             UnityWebRequest request;
             switch(method) {
                 case RequestMethod.GET:
